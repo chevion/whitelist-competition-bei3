@@ -12,6 +12,7 @@ interface GameStore extends GameState {
   setPath: (path: MapCell[]) => void;
   setErrors: (errors: string[]) => void;
   setIsComplete: (complete: boolean) => void;
+  setBurning: (burning: boolean) => void;
   resetGame: () => void;
   movePlayer: (direction: GameState['playerDirection']) => void;
   collectItem: (item: string) => void;
@@ -28,6 +29,7 @@ const initialState: GameState = {
   path: [{ x: 0, y: 0 }],
   errors: [],
   isComplete: false,
+  burning: false,
 };
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -43,6 +45,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setPath: (path) => set({ path }),
   setErrors: (errors) => set({ errors }),
   setIsComplete: (isComplete) => set({ isComplete }),
+  setBurning: (burning) => set({ burning }),
 
   resetGame: () => set({ ...initialState, path: [{ x: 0, y: 0 }], collectedItems: [], errors: [], currentMap: null }),
 
@@ -75,11 +78,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   addError: (error) => {
-    const { errors, health } = get();
-    set({
-      errors: [...errors, error],
-      health: Math.max(0, health - 10),
-    });
+    const { errors } = get();
+    set({ errors: [...errors, error] });
   },
 
   completeGame: () => set({ isComplete: true }),

@@ -1,147 +1,189 @@
-import { Link } from 'react-router-dom';
-import { Footprints, BookOpen, Package, MapPin, Heart, MapPinned } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, ArrowLeft, MapPin, AlertTriangle, CloudRain, Flame, Mountain, Snowflake, Wind } from 'lucide-react';
 import ElephantMascot from '@/components/ElephantMascot';
+import ChinaMap from '@/components/ChinaMap';
 import { useAppStore } from '@/stores/appStore';
 import { provinces } from '@/data/provinces';
 import { setProvince as saveProvince } from '@/services/storageService';
 
-const modules = [
-  {
-    title: '逃生演练',
-    desc: '模拟真实灾害场景，学习正确逃生方法',
-    icon: Footprints,
-    path: '/escape',
-    color: 'bg-danger-red',
-    gradient: 'from-red-400 to-orange-400',
-  },
-  {
-    title: '安全问答',
-    desc: '趣味安全知识问答，检验你的安全意识',
-    icon: BookOpen,
-    path: '/quiz',
-    color: 'bg-brand-orange',
-    gradient: 'from-orange-400 to-amber-400',
-  },
-  {
-    title: '物资储备',
-    desc: '智能推荐家庭应急物资清单',
-    icon: Package,
-    path: '/supplies',
-    color: 'bg-safety-green',
-    gradient: 'from-emerald-400 to-teal-400',
-  },
-  {
-    title: '家庭规划',
-    desc: '制定家庭逃生路线和应急预案',
-    icon: MapPin,
-    path: '/home-plan',
-    color: 'bg-blue-500',
-    gradient: 'from-blue-400 to-indigo-400',
-  },
-  {
-    title: '医疗急救卡',
-    desc: '生成个人医疗急救信息卡',
-    icon: Heart,
-    path: '/home-plan/medical-card',
-    color: 'bg-pink-500',
-    gradient: 'from-pink-400 to-rose-400',
-  },
-];
+const disasterIcons: Record<string, typeof Flame> = {
+  '地震': Mountain,
+  '台风': Wind,
+  '暴雨': CloudRain,
+  '洪水': CloudRain,
+  '火灾': Flame,
+  '泥石流': Mountain,
+  '沙尘暴': Wind,
+  '暴雪': Snowflake,
+  '干旱': AlertTriangle,
+  '雪崩': Snowflake,
+};
+
+const riskLabels: Record<string, { text: string; color: string; bg: string }> = {
+  'very-high': { text: '极高风险', color: 'text-red-600', bg: 'bg-red-100' },
+  'high': { text: '高风险', color: 'text-orange-600', bg: 'bg-orange-100' },
+  'medium': { text: '中等风险', color: 'text-amber-600', bg: 'bg-amber-100' },
+  'low': { text: '低风险', color: 'text-green-600', bg: 'bg-green-100' },
+};
 
 export default function Home() {
-  const { province, setProvince } = useAppStore();
+  const navigate = useNavigate();
+  const { setProvince } = useAppStore();
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
 
-  const handleProvinceChange = (name: string) => {
-    setProvince(name);
-    saveProvince(name);
+  const provinceData = provinces.find((p) => p.name === selectedProvince);
+  const risk = provinceData ? riskLabels[provinceData.riskLevel] : null;
+
+  const handleSelectProvince = (name: string) => {
+    setSelectedProvince(name);
   };
 
-  const provinceData = provinces.find((p) => p.name === province);
+  const handleConfirm = () => {
+    if (!selectedProvince) return;
+    setProvince(selectedProvince);
+    saveProvince(selectedProvince);
+    navigate('/modules');
+  };
+
+  const handleBack = () => {
+    setSelectedProvince(null);
+  };
 
   return (
-    <div className="flex flex-col items-center gap-8 pb-20 md:pb-0">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center flex flex-col items-center gap-3"
-      >
-        <ElephantMascot mood="happy" size="lg" message="欢迎来到安全小象！让我来保护你的安全吧！" />
-        <h1 className="font-title text-3xl md:text-4xl text-brand-orange">安全小象</h1>
-        <p className="text-dark-text/70 text-lg">安全教育互动平台</p>
-      </motion.div>
+    <div className="fixed inset-0 bg-gradient-to-br from-[#E8F4FD] via-[#FFF8F0] to-[#FEECD2] overflow-auto">
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 opacity-75">
+        <motion.div
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-6"
+        >
+          <ElephantMascot mood={selectedProvince ? 'thinking' : 'happy'} size="lg" />
+          <h1 className="font-title text-4xl md:text-5xl text-brand-orange mt-4">
+            安全小象
+          </h1>
+          <p className="text-dark-text/60 text-lg mt-2">
+            {selectedProvince
+              ? `${selectedProvince}的常见自然灾害`
+              : '点击地图选择你所在的省份，开始安全之旅'}
+          </p>
+        </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="w-full max-w-md"
-      >
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 mb-3">
-            <MapPinned size={18} className="text-brand-orange" />
-            <span className="text-sm font-medium text-dark-text">选择你所在的省份</span>
-          </div>
-          <select
-            value={province}
-            onChange={(e) => handleProvinceChange(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-warm-white text-dark-text outline-none focus:border-brand-orange transition-colors"
-          >
-            <option value="">请选择省份</option>
-            {provinces.map((p) => (
-              <option key={p.name} value={p.name}>{p.name}</option>
-            ))}
-          </select>
-          {provinceData && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {provinceData.commonDisasters.map((d) => (
-                <span
-                  key={d}
-                  className="inline-block px-2 py-0.5 rounded-full bg-danger-red/10 text-danger-red text-xs font-medium"
-                >
-                  {d}
-                </span>
-              ))}
-              <span className="inline-block px-2 py-0.5 rounded-full bg-dark-text/5 text-dark-text/50 text-xs">
-                常见灾害
-              </span>
-            </div>
-          )}
-          {!province && (
-            <p className="text-xs text-dark-text/40 mt-2">选择省份后，内容将根据当地灾害风险个性化推荐</p>
-          )}
-        </div>
-      </motion.div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-4xl">
-        {modules.map((mod, idx) => {
-          const Icon = mod.icon;
-          return (
-            <motion.div
-              key={mod.path}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 + idx * 0.05 }}
-            >
-              <Link
-                to={mod.path}
-                className="block no-underline group"
+        <div className="w-full max-w-3xl">
+          <AnimatePresence mode="wait">
+            {selectedProvince && provinceData ? (
+              <motion.div
+                key={`disaster-${selectedProvince}`}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+                className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-6 md:p-8"
               >
-                <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all">
-                  <div className={`bg-gradient-to-r ${mod.gradient} p-4 flex items-center justify-center`}>
-                    <Icon size={32} className="text-white" />
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h2 className="font-title text-2xl md:text-3xl text-dark-text">
+                      {selectedProvince}
+                    </h2>
+                    <p className="text-dark-text/50 text-sm mt-1">常见自然灾害风险</p>
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-medium text-dark-text text-base group-hover:text-brand-orange transition-colors">
-                      {mod.title}
-                    </h3>
-                    <p className="text-dark-text/50 text-sm mt-1">{mod.desc}</p>
+                  {risk && (
+                    <span className={`px-4 py-1.5 rounded-full text-sm font-bold ${risk.color} ${risk.bg}`}>
+                      {risk.text}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {provinceData.commonDisasters.map((disaster, idx) => {
+                    const Icon = disasterIcons[disaster] || AlertTriangle;
+                    const colors = [
+                      'from-red-400 to-red-500',
+                      'from-orange-400 to-amber-500',
+                      'from-blue-400 to-blue-500',
+                      'from-amber-400 to-yellow-500',
+                      'from-purple-400 to-purple-500',
+                      'from-teal-400 to-emerald-500',
+                    ];
+                    return (
+                      <motion.div
+                        key={disaster}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.08 }}
+                        className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col items-center gap-2"
+                      >
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colors[idx % colors.length]} flex items-center justify-center`}>
+                          <Icon size={24} className="text-white" />
+                        </div>
+                        <span className="text-sm font-medium text-dark-text">{disaster}</span>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 p-4 bg-brand-orange/5 rounded-2xl border border-brand-orange/10">
+                  <div className="flex items-start gap-2">
+                    <ElephantMascot mood="thinking" size="sm" />
+                    <p className="text-sm text-dark-text/70 leading-relaxed">
+                      {selectedProvince}地区常见的灾害包括{provinceData.commonDisasters.join('、')}。
+                      小象会根据这些风险为你定制专属的安全学习内容！
+                    </p>
                   </div>
                 </div>
-              </Link>
+
+                <button
+                  onClick={handleBack}
+                  className="mt-5 flex items-center gap-1.5 text-dark-text/50 hover:text-dark-text/80 text-sm transition-colors"
+                >
+                  <ArrowLeft size={16} />
+                  <span>重新选择省份</span>
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="map"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+                className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-4 md:p-6"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <MapPin size={20} className="text-brand-orange" />
+                  <span className="font-title text-lg text-dark-text">选择你的省份</span>
+                </div>
+
+                <ChinaMap
+                  selectedProvince={selectedProvince}
+                  onSelect={handleSelectProvince}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <AnimatePresence>
+          {selectedProvince && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="fixed bottom-6 right-6 z-50"
+            >
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleConfirm}
+                className="flex items-center gap-2 px-6 py-3.5 bg-blue-500 hover:bg-blue-600 text-white font-title text-lg rounded-2xl shadow-lg shadow-blue-500/30 transition-colors"
+              >
+                开始学习
+                <ArrowRight size={20} />
+              </motion.button>
             </motion.div>
-          );
-        })}
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
+import Modules from '@/pages/Modules';
 import EscapeSceneSelect from '@/pages/escape/EscapeSceneSelect';
 import EscapeGame from '@/pages/escape/EscapeGame';
 import EscapeReport from '@/pages/escape/EscapeReport';
@@ -14,9 +15,10 @@ import MedicalCard from '@/pages/homeplan/MedicalCard';
 export default function App() {
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Home />} />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route element={<Layout />}>
+          <Route path="/modules" element={<Modules />} />
           <Route path="/escape" element={<EscapeSceneSelect />} />
           <Route path="/escape/game" element={<EscapeGame />} />
           <Route path="/escape/report" element={<EscapeReport />} />
@@ -26,8 +28,8 @@ export default function App() {
           <Route path="/home-plan" element={<HomePlan />} />
           <Route path="/home-plan/escape-map" element={<EscapeMap />} />
           <Route path="/home-plan/medical-card" element={<MedicalCard />} />
-        </Routes>
-      </Layout>
+        </Route>
+      </Routes>
     </Router>
   );
 }

@@ -35,13 +35,13 @@ export interface MapCell {
 
 export interface MapItem {
   position: MapCell;
-  type: 'key' | 'flashlight' | 'mask' | 'firstaid' | 'phone' | 'exit-sign';
+  type: 'key' | 'flashlight' | 'mask' | 'firstaid' | 'phone' | 'exit-sign' | 'bandage' | 'cotton';
   name: string;
 }
 
 export interface MapObstacle {
   position: MapCell;
-  type: 'wall' | 'fire' | 'debris' | 'flood' | 'locked-door';
+  type: 'wall' | 'fire' | 'debris' | 'flood' | 'locked-door' | 'door';
   name: string;
 }
 
@@ -55,6 +55,7 @@ export interface MapTemplate {
   obstacles: MapObstacle[];
   items: MapItem[];
   disasterType: string;
+  layout?: string[];
 }
 
 export interface GameState {
@@ -66,6 +67,7 @@ export interface GameState {
   path: MapCell[];
   errors: string[];
   isComplete: boolean;
+  burning: boolean;
 }
 
 export interface EmergencyContact {

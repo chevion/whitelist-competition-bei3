@@ -1,14 +1,10 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, Outlet } from 'react-router-dom';
 import { Settings, Home, Footprints, BookOpen, Package, MapPin, Heart } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 import SettingsModal from './SettingsModal';
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
 const navItems = [
-  { path: '/', label: '首页', icon: Home },
+  { path: '/modules', label: '首页', icon: Home },
   { path: '/escape', label: '逃生演练', icon: Footprints },
   { path: '/quiz', label: '安全问答', icon: BookOpen },
   { path: '/supplies', label: '物资储备', icon: Package },
@@ -16,7 +12,7 @@ const navItems = [
   { path: '/home-plan/medical-card', label: '医疗卡', icon: Heart },
 ];
 
-export default function Layout({ children }: LayoutProps) {
+export default function Layout() {
   const location = useLocation();
   const { setShowSettings } = useAppStore();
 
@@ -25,8 +21,12 @@ export default function Layout({ children }: LayoutProps) {
       <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-100">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-14">
-            <Link to="/" className="flex items-center gap-2 no-underline">
-              <span className="text-2xl">🐘</span>
+            <Link to="/modules" className="flex items-center gap-2 no-underline">
+              <img
+                src="/elephant-mascot.jpg"
+                alt="安全小象"
+                className="w-8 h-8 rounded-lg object-contain"
+              />
               <span className="font-title text-xl text-brand-orange">安全小象</span>
             </Link>
 
@@ -35,7 +35,7 @@ export default function Layout({ children }: LayoutProps) {
                 const Icon = item.icon;
                 const isActive =
                   location.pathname === item.path ||
-                  (item.path !== '/' && location.pathname.startsWith(item.path));
+                  (item.path !== '/modules' && location.pathname.startsWith(item.path));
                 return (
                   <Link
                     key={item.path}
@@ -63,7 +63,9 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">{children}</main>
+      <main className="container mx-auto px-4 py-6">
+        <Outlet />
+      </main>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 md:hidden z-50">
         <div className="flex items-center justify-around py-2">
@@ -71,7 +73,7 @@ export default function Layout({ children }: LayoutProps) {
             const Icon = item.icon;
             const isActive =
               location.pathname === item.path ||
-              (item.path !== '/' && location.pathname.startsWith(item.path));
+              (item.path !== '/modules' && location.pathname.startsWith(item.path));
             return (
               <Link
                 key={item.path}
