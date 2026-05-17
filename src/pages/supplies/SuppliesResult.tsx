@@ -14,9 +14,7 @@ import {
   CircleDot,
 } from 'lucide-react';
 import ElephantMascot from '@/components/ElephantMascot';
-import AILoading from '@/components/AILoading';
 import { getFamilyInfo, getCalculatedSupplies } from '@/services/storageService';
-import { generateSuppliesList, generateSuppliesPlan } from '@/services/aiService';
 import { exportAsImage } from '@/utils/exportImage';
 import type { CalculatedSupply } from '@/types';
 
@@ -38,12 +36,6 @@ export default function SuppliesResult() {
   const navigate = useNavigate();
 
   const [supplies, setSupplies] = useState<CalculatedSupply[]>([]);
-  const [aiListText, setAiListText] = useState<string>('');
-  const [aiPlanText, setAiPlanText] = useState<string>('');
-  const [loadingList, setLoadingList] = useState(false);
-  const [loadingPlan, setLoadingPlan] = useState(false);
-  const [listError, setListError] = useState(false);
-  const [planError, setPlanError] = useState(false);
 
   const familyInfo = useMemo(() => getFamilyInfo(), []);
 
@@ -66,40 +58,6 @@ export default function SuppliesResult() {
     }
     return Object.entries(groups).filter(([, items]) => items.length > 0) as [CategoryType, CalculatedSupply[]][];
   }, [supplies]);
-
-  useEffect(() => {
-    if (!familyInfo || supplies.length === 0) return;
-
-    const disasters = familyInfo.disasters.join('、');
-    const categories = [...new Set(supplies.map((s) => s.category))];
-
-    setLoadingList(true);
-    setListError(false);
-    generateSuppliesList({ category: categories.join('、'), disaster: disasters })
-      .then((res) => {
-        if (res.content && !res.content.includes('请先在设置中配置')) {
-          setAiListText(res.content);
-        } else {
-          setListError(true);
-        }
-      })
-      .catch(() => setListError(true))
-      .finally(() => setLoadingList(false));
-
-    setLoadingPlan(true);
-    setPlanError(false);
-    const supplyNames = supplies.map((s) => `${s.name}(${s.quantity}${s.unit})`);
-    generateSuppliesPlan(familyInfo, supplyNames)
-      .then((res) => {
-        if (res.content && !res.content.includes('请先在设置中配置')) {
-          setAiPlanText(res.content);
-        } else {
-          setPlanError(true);
-        }
-      })
-      .catch(() => setPlanError(true))
-      .finally(() => setLoadingPlan(false));
-  }, [familyInfo, supplies]);
 
   const handleExport = () => {
     exportAsImage('supplies-result', '我的应急物资清单');
@@ -168,75 +126,36 @@ export default function SuppliesResult() {
           })}
         </div>
 
-        {/* AI温馨清单 */}
+        {/* 温馨提示 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
           className="mb-6"
         >
-          <div className="bg-white rounded-2xl p-5 shadow-sm border-2 border-dashed border-brand-orange/30">
-            <div className="flex items-center gap-2 mb-3">
-              <ElephantMascot mood="happy" size="sm" />
-              <h3 className="font-title text-lg text-brand-orange">小象的温馨清单</h3>
-            </div>
-            {loadingList ? (
-              <AILoading text="小象正在整理温馨清单..." />
-            ) : listError ? (
-              <p className="text-dark-text/50 text-sm">AI生成失败，请查看上方基础清单</p>
-            ) : aiListText ? (
-              <div className="text-dark-text/80 text-sm leading-relaxed whitespace-pre-wrap">
-                {aiListText}
-              </div>
-            ) : null}
-          </div>
-        </motion.div>
-
-        {/* AI四周计划 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mb-6"
-        >
-          <div className="bg-white rounded-2xl p-5 shadow-sm border-2 border-dashed border-safety-green/30">
+          <div className="bg-gradient-to-r from-brand-orange/5 to-amber-50 rounded-2xl p-5 border border-brand-orange/20">
             <div className="flex items-center gap-2 mb-3">
               <ElephantMascot mood="thinking" size="sm" />
-              <h3 className="font-title text-lg text-safety-green">四周准备计划</h3>
+              <h3 className="font-title text-lg text-brand-orange">小象温馨提示</h3>
             </div>
-            {loadingPlan ? (
-              <AILoading text="小象正在制定准备计划..." />
-            ) : planError ? (
-              <p className="text-dark-text/50 text-sm">AI生成失败，请查看上方基础清单</p>
-            ) : aiPlanText ? (
-              <div className="space-y-4">
-                {aiPlanText.split(/第[一二三四]周/).filter(Boolean).map((weekContent, idx) => {
-                  const weekLabels = ['第一周', '第二周', '第三周', '第四周'];
-                  const weekColors = [
-                    'bg-brand-orange',
-                    'bg-amber-400',
-                    'bg-safety-green',
-                    'bg-blue-400',
-                  ];
-                  return (
-                    <div key={idx} className="flex gap-3">
-                      <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full ${weekColors[idx]} text-white text-xs font-bold flex items-center justify-center shrink-0`}>
-                          {idx + 1}
-                        </div>
-                        {idx < 3 && <div className="w-0.5 flex-1 bg-gray-200 mt-1" />}
-                      </div>
-                      <div className="flex-1 pb-4">
-                        <p className="font-medium text-dark-text text-sm mb-1">{weekLabels[idx]}</p>
-                        <p className="text-dark-text/70 text-sm leading-relaxed whitespace-pre-wrap">
-                          {weekContent.trim()}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
+            <ul className="text-dark-text/70 text-sm space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-brand-orange">*</span>
+                <span>定期检查物资有效期，建议每3个月更新一次</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-brand-orange">*</span>
+                <span>将应急包放在显眼且易于拿取的位置</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-brand-orange">*</span>
+                <span>确保每位家庭成员都知道应急包的位置</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-brand-orange">*</span>
+                <span>根据家庭情况和所在地区灾害特点调整物资清单</span>
+              </li>
+            </ul>
           </div>
         </motion.div>
       </div>
