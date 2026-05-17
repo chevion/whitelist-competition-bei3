@@ -136,17 +136,17 @@ export default function EscapeGame() {
 
     const fireStartPositions: MapCell[] = [];
     if (currentMap.id === 'hospital') {
-      fireStartPositions.push({ x: 8, y: 2 });
-      fireStartPositions.push({ x: 14, y: 5 });
-      fireStartPositions.push({ x: 3, y: 8 });
+      fireStartPositions.push({ x: 2, y: 2 });
+      fireStartPositions.push({ x: 9, y: 8 });
+      fireStartPositions.push({ x: 15, y: 13 });
     } else if (currentMap.id === 'school-classroom') {
-      fireStartPositions.push({ x: 8, y: 2 });
-      fireStartPositions.push({ x: 15, y: 5 });
-      fireStartPositions.push({ x: 4, y: 9 });
+      fireStartPositions.push({ x: 2, y: 2 });
+      fireStartPositions.push({ x: 9, y: 8 });
+      fireStartPositions.push({ x: 16, y: 13 });
     } else if (currentMap.id === 'cinema') {
       fireStartPositions.push({ x: 5, y: 3 });
-      fireStartPositions.push({ x: 11, y: 3 });
-      fireStartPositions.push({ x: 8, y: 4 });
+      fireStartPositions.push({ x: 10, y: 7 });
+      fireStartPositions.push({ x: 8, y: 11 });
     }
 
     for (const fp of fireStartPositions) {
@@ -163,9 +163,43 @@ export default function EscapeGame() {
     setGrid(g);
     gridRef.current = g;
 
+    const emptyCells: MapCell[] = [];
+    const blockedKeys = new Set<string>();
+    for (const fp of fireStartPositions) {
+      blockedKeys.add(`${fp.x},${fp.y}`);
+    }
+    blockedKeys.add(`${currentMap.startPoint.x},${currentMap.startPoint.y}`);
+    blockedKeys.add(`${currentMap.endPoint.x},${currentMap.endPoint.y}`);
+    for (let r = 0; r < g.length; r++) {
+      for (let c = 0; c < g[0].length; c++) {
+        if (g[r][c] === 'empty' && !blockedKeys.has(`${c},${r}`)) {
+          emptyCells.push({ x: c, y: r });
+        }
+      }
+    }
+    for (let i = emptyCells.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [emptyCells[i], emptyCells[j]] = [emptyCells[j], emptyCells[i]];
+    }
+
     const im = new Map<string, MapItem>();
-    for (const item of currentMap.items) {
-      im.set(`${item.position.x},${item.position.y}`, item);
+    const usedKeys = new Set<string>();
+    for (let idx = 0; idx < currentMap.items.length; idx++) {
+      const item = currentMap.items[idx];
+      let placed = false;
+      for (const cell of emptyCells) {
+        const key = `${cell.x},${cell.y}`;
+        if (!usedKeys.has(key)) {
+          im.set(key, { ...item, position: { x: cell.x, y: cell.y } });
+          usedKeys.add(key);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        const fallbackKey = `${item.position.x},${item.position.y}`;
+        im.set(fallbackKey, item);
+      }
     }
     setItemMap(im);
     itemMapRef.current = im;
@@ -408,7 +442,15 @@ export default function EscapeGame() {
     const render = () => {
       ctx.clearRect(0, 0, canvasW, canvasH);
 
-      ctx.fillStyle = '#F0F4F8';
+      const sceneId = currentMap!.id;
+
+      if (sceneId === 'school-classroom') {
+        ctx.fillStyle = '#FEF9F0';
+      } else if (sceneId === 'hospital') {
+        ctx.fillStyle = '#F0F7FF';
+      } else {
+        ctx.fillStyle = '#1A1A2E';
+      }
       ctx.fillRect(0, 0, canvasW, canvasH);
 
       const g = gridRef.current;
@@ -422,41 +464,100 @@ export default function EscapeGame() {
           const cy = r * CELL;
 
           if (cellType === 'wall') {
-            ctx.fillStyle = '#374151';
-            ctx.fillRect(cx, cy, CELL, CELL);
-            ctx.fillStyle = '#4B5563';
-            ctx.fillRect(cx + 1, cy + 1, CELL - 2, 3);
-            ctx.fillRect(cx + 1, cy + 1, 3, CELL - 2);
-            ctx.fillStyle = '#1F2937';
-            ctx.fillRect(cx + CELL - 3, cy + 1, 2, CELL - 1);
-            ctx.fillRect(cx + 1, cy + CELL - 3, CELL - 1, 2);
+            if (sceneId === 'school-classroom') {
+              ctx.fillStyle = '#8B7355';
+              ctx.fillRect(cx, cy, CELL, CELL);
+              ctx.fillStyle = '#A0896C';
+              ctx.fillRect(cx + 1, cy + 1, CELL - 2, 3);
+              ctx.fillRect(cx + 1, cy + 1, 3, CELL - 2);
+              ctx.fillStyle = '#6B5740';
+              ctx.fillRect(cx + CELL - 3, cy + 1, 2, CELL - 1);
+              ctx.fillRect(cx + 1, cy + CELL - 3, CELL - 1, 2);
+            } else if (sceneId === 'hospital') {
+              ctx.fillStyle = '#D1D5DB';
+              ctx.fillRect(cx, cy, CELL, CELL);
+              ctx.fillStyle = '#E5E7EB';
+              ctx.fillRect(cx + 1, cy + 1, CELL - 2, 3);
+              ctx.fillRect(cx + 1, cy + 1, 3, CELL - 2);
+              ctx.fillStyle = '#9CA3AF';
+              ctx.fillRect(cx + CELL - 3, cy + 1, 2, CELL - 1);
+              ctx.fillRect(cx + 1, cy + CELL - 3, CELL - 1, 2);
+            } else {
+              ctx.fillStyle = '#2D2D4A';
+              ctx.fillRect(cx, cy, CELL, CELL);
+              ctx.fillStyle = '#3D3D5C';
+              ctx.fillRect(cx + 1, cy + 1, CELL - 2, 3);
+              ctx.fillRect(cx + 1, cy + 1, 3, CELL - 2);
+              ctx.fillStyle = '#1D1D3A';
+              ctx.fillRect(cx + CELL - 3, cy + 1, 2, CELL - 1);
+              ctx.fillRect(cx + 1, cy + CELL - 3, CELL - 1, 2);
+            }
           } else if (cellType === 'door') {
-            ctx.fillStyle = '#FEF3C7';
+            ctx.fillStyle = sceneId === 'cinema' ? '#2A2A40' : '#FEF3C7';
             ctx.fillRect(cx, cy, CELL, CELL);
-            ctx.fillStyle = '#92400E';
-            ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
-            ctx.fillStyle = '#B45309';
-            ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
-            ctx.fillStyle = '#FCD34D';
-            ctx.beginPath();
-            ctx.arc(cx + CELL - 12, cy + CELL / 2, 3, 0, Math.PI * 2);
-            ctx.fill();
+            if (sceneId === 'hospital') {
+              ctx.fillStyle = '#E8E8E8';
+              ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
+              ctx.fillStyle = '#F5F5F5';
+              ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
+              ctx.fillStyle = '#3B82F6';
+              ctx.beginPath();
+              ctx.arc(cx + CELL / 2, cy + CELL / 2, 4, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#60A5FA';
+              ctx.beginPath();
+              ctx.arc(cx + CELL / 2, cy + CELL / 2, 2, 0, Math.PI * 2);
+              ctx.fill();
+            } else if (sceneId === 'cinema') {
+              ctx.fillStyle = '#4A4A6A';
+              ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
+              ctx.fillStyle = '#5A5A7A';
+              ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
+              ctx.fillStyle = '#22C55E';
+              ctx.beginPath();
+              ctx.arc(cx + CELL - 12, cy + CELL / 2, 3, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.fillStyle = '#92400E';
+              ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
+              ctx.fillStyle = '#B45309';
+              ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
+              ctx.fillStyle = '#FCD34D';
+              ctx.beginPath();
+              ctx.arc(cx + CELL - 12, cy + CELL / 2, 3, 0, Math.PI * 2);
+              ctx.fill();
+            }
           } else if (cellType === 'locked-door') {
-            ctx.fillStyle = '#FEF3C7';
+            ctx.fillStyle = sceneId === 'cinema' ? '#2A2A40' : '#FEF3C7';
             ctx.fillRect(cx, cy, CELL, CELL);
-            ctx.fillStyle = '#7C2D12';
-            ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
-            ctx.fillStyle = '#991B1B';
-            ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
-            ctx.fillStyle = '#FCD34D';
-            ctx.beginPath();
-            ctx.arc(cx + CELL / 2, cy + CELL / 2, 5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#7C2D12';
-            ctx.beginPath();
-            ctx.arc(cx + CELL / 2, cy + CELL / 2, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillRect(cx + CELL / 2 - 1.5, cy + CELL / 2 + 2, 3, 6);
+            if (sceneId === 'hospital') {
+              ctx.fillStyle = '#C0C0C0';
+              ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
+              ctx.fillStyle = '#D0D0D0';
+              ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
+              ctx.fillStyle = '#EF4444';
+              ctx.beginPath();
+              ctx.arc(cx + CELL / 2, cy + CELL / 2, 5, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#FCA5A5';
+              ctx.beginPath();
+              ctx.arc(cx + CELL / 2, cy + CELL / 2, 2.5, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.fillStyle = '#7C2D12';
+              ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
+              ctx.fillStyle = '#991B1B';
+              ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
+              ctx.fillStyle = '#FCD34D';
+              ctx.beginPath();
+              ctx.arc(cx + CELL / 2, cy + CELL / 2, 5, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = '#7C2D12';
+              ctx.beginPath();
+              ctx.arc(cx + CELL / 2, cy + CELL / 2, 2.5, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillRect(cx + CELL / 2 - 1.5, cy + CELL / 2 + 2, 3, 6);
+            }
           } else if (cellType === 'fire') {
             ctx.fillStyle = '#450A0A';
             ctx.fillRect(cx, cy, CELL, CELL);
@@ -476,13 +577,87 @@ export default function EscapeGame() {
               ctx.fill();
             }
           } else {
-            ctx.fillStyle = '#F8FAFC';
-            ctx.fillRect(cx, cy, CELL, CELL);
-            ctx.strokeStyle = '#E2E8F0';
-            ctx.lineWidth = 0.3;
-            ctx.strokeRect(cx, cy, CELL, CELL);
+            if (sceneId === 'school-classroom') {
+              ctx.fillStyle = '#FFF8EE';
+              ctx.fillRect(cx, cy, CELL, CELL);
+              ctx.strokeStyle = '#E8DCC8';
+              ctx.lineWidth = 0.3;
+              ctx.strokeRect(cx, cy, CELL, CELL);
+            } else if (sceneId === 'hospital') {
+              ctx.fillStyle = '#F8FBFF';
+              ctx.fillRect(cx, cy, CELL, CELL);
+              ctx.strokeStyle = '#D4E4F7';
+              ctx.lineWidth = 0.3;
+              ctx.strokeRect(cx, cy, CELL, CELL);
+            } else {
+              ctx.fillStyle = '#1E1E38';
+              ctx.fillRect(cx, cy, CELL, CELL);
+              ctx.strokeStyle = '#2A2A4A';
+              ctx.lineWidth = 0.3;
+              ctx.strokeRect(cx, cy, CELL, CELL);
+            }
           }
         }
+      }
+
+      if (sceneId === 'school-classroom') {
+        const roomCenters = [
+          { cx: 2, cy: 3, label: '教室' }, { cx: 7, cy: 3, label: '教室' },
+          { cx: 12, cy: 3, label: '教室' }, { cx: 16, cy: 3, label: '教室' },
+          { cx: 2, cy: 13, label: '教室' }, { cx: 7, cy: 13, label: '教室' },
+          { cx: 12, cy: 13, label: '教室' }, { cx: 16, cy: 13, label: '教室' },
+        ];
+        for (const rc of roomCenters) {
+          const rx = rc.cx * CELL + CELL / 2;
+          const ry = rc.cy * CELL + CELL / 2;
+          ctx.fillStyle = 'rgba(139,115,85,0.5)';
+          ctx.font = 'bold 8px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(rc.label, rx, ry);
+        }
+        ctx.fillStyle = 'rgba(139,115,85,0.3)';
+        ctx.font = '8px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('走廊', 9 * CELL, 8 * CELL + CELL / 2);
+      }
+
+      if (sceneId === 'hospital') {
+        const roomLabels = [
+          { cx: 2, cy: 3, label: '病房' }, { cx: 7, cy: 3, label: '手术室' }, { cx: 14, cy: 3, label: 'ICU' },
+          { cx: 2, cy: 13, label: '病房' }, { cx: 7, cy: 13, label: '护士站' }, { cx: 14, cy: 13, label: '药房' },
+        ];
+        for (const rc of roomLabels) {
+          const rx = rc.cx * CELL + CELL / 2;
+          const ry = rc.cy * CELL + CELL / 2;
+          ctx.fillStyle = 'rgba(59,130,246,0.5)';
+          ctx.font = 'bold 8px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(rc.label, rx, ry);
+        }
+        ctx.fillStyle = 'rgba(59,130,246,0.3)';
+        ctx.font = '8px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('走廊', 9 * CELL, 8 * CELL + CELL / 2);
+      }
+
+      if (sceneId === 'cinema') {
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('银 幕', 10 * CELL, 2 * CELL + CELL / 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillRect(2 * CELL, 1 * CELL + 8, 16 * CELL, 4);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '7px sans-serif';
+        ctx.fillText('座位区', 3 * CELL, 5 * CELL + CELL / 2);
+        ctx.fillText('座位区', 8 * CELL, 5 * CELL + CELL / 2);
+        ctx.fillText('座位区', 13 * CELL, 5 * CELL + CELL / 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillText('过道', 10 * CELL, 7 * CELL + CELL / 2);
+        ctx.fillText('过道', 10 * CELL, 11 * CELL + CELL / 2);
       }
 
       if (fireOrigin) {
@@ -495,9 +670,8 @@ export default function EscapeGame() {
         ctx.fillText('🔥起火点', ox, oy);
       }
 
-      for (const item of currentMap.items) {
-        const key = `${item.position.x},${item.position.y}`;
-        if (cs.has(key)) continue;
+      for (const [itemKey, item] of im.entries()) {
+        if (cs.has(itemKey)) continue;
         if (g[item.position.y]?.[item.position.x] === 'wall' || g[item.position.y]?.[item.position.x] === 'fire') continue;
 
         const ix = item.position.x * CELL + CELL / 2;
@@ -703,7 +877,7 @@ export default function EscapeGame() {
               ◀
             </button>
             <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
-              <img src="/elephant-mascot-new.png" alt="安全小象" className="w-8 h-8 object-contain" />
+              <img src="/elephant-mascot.png" alt="安全小象" className="w-8 h-8 object-contain" />
             </div>
             <button
               onTouchStart={() => tryMove('right')}
