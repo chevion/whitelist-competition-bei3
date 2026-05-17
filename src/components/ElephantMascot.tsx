@@ -24,7 +24,7 @@ export default function ElephantMascot({
         style={{ width: s.container, height: s.container }}
       >
         <img
-          src="/elephant-mascot.jpg"
+          src="/elephant-mascot-new.png"
           alt="安全小象"
           className="w-full h-full object-contain"
         />

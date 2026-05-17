@@ -23,7 +23,7 @@ export default function Layout() {
           <div className="flex items-center justify-between h-14">
             <Link to="/modules" className="flex items-center gap-2 no-underline">
               <img
-                src="/elephant-mascot.jpg"
+                src="/elephant-mascot-new.png"
                 alt="安全小象"
                 className="w-8 h-8 rounded-lg object-contain"
               />

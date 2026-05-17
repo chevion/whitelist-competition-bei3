@@ -703,7 +703,7 @@ export default function EscapeGame() {
               ◀
             </button>
             <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
-              <img src="/elephant-mascot.jpg" alt="安全小象" className="w-8 h-8 object-contain" />
+              <img src="/elephant-mascot-new.png" alt="安全小象" className="w-8 h-8 object-contain" />
             </div>
             <button
               onTouchStart={() => tryMove('right')}
