@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, RotateCcw, AlertTriangle, Clock, Heart, MapPin, Package, AlertCircle } from 'lucide-react';
+import { Home, RotateCcw, Heart, Clock, MapPin, Package, AlertTriangle } from 'lucide-react';
 import ElephantMascot from '@/components/ElephantMascot';
 import AILoading from '@/components/AILoading';
 import { useGameStore } from '@/stores/gameStore';
@@ -93,7 +93,7 @@ export default function EscapeReport() {
     { icon: Heart, label: '剩余生命', value: `${health}/100`, color: health > 50 ? 'text-safety-green' : 'text-danger-red' },
     { icon: MapPin, label: '移动步数', value: `${pathLength}步`, color: 'text-blue-500' },
     { icon: Package, label: '收集物品', value: `${itemsCollected}件`, color: 'text-amber-500' },
-    { icon: AlertCircle, label: '犯错次数', value: `${errorCount}次`, color: errorCount > 0 ? 'text-danger-red' : 'text-safety-green' },
+    { icon: AlertTriangle, label: '犯错次数', value: `${errorCount}次`, color: errorCount > 0 ? 'text-danger-red' : 'text-safety-green' },
   ];
 
   return (
@@ -139,29 +139,49 @@ export default function EscapeReport() {
         </div>
       </motion.div>
 
-      {errors.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-red-50 rounded-2xl p-5 border border-red-100 mb-4"
-        >
-          <h3 className="font-medium text-danger-red mb-3 flex items-center gap-2">
-            <AlertCircle size={18} />
-            错误回顾
-          </h3>
-          <ul className="space-y-2">
-            {errors.map((err, i) => (
-              <li key={i} className="text-sm text-red-700 flex items-start gap-2">
-                <span className="w-5 h-5 rounded-full bg-danger-red/20 text-danger-red text-xs flex items-center justify-center shrink-0 mt-0.5">
-                  {i + 1}
-                </span>
-                {err}
-              </li>
-            ))}
-          </ul>
-        </motion.div>
-      )}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-green-50 rounded-2xl p-5 border border-green-100 mb-4"
+      >
+        <h3 className="font-medium text-safety-green mb-3 flex items-center gap-2">
+          <Heart size={18} />
+          温馨提示
+        </h3>
+        <ul className="space-y-2">
+          <li className="text-sm text-green-700 flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-safety-green/20 text-safety-green text-xs flex items-center justify-center shrink-0 mt-0.5">
+              1
+            </span>
+            火灾时，请不要冲进火焰区域
+          </li>
+          <li className="text-sm text-green-700 flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-safety-green/20 text-safety-green text-xs flex items-center justify-center shrink-0 mt-0.5">
+              2
+            </span>
+            收集到的绷带可以在受伤时自动使用止血
+          </li>
+          <li className="text-sm text-green-700 flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-safety-green/20 text-safety-green text-xs flex items-center justify-center shrink-0 mt-0.5">
+              3
+            </span>
+            地震时会有石头掉落，请避开落石区域
+          </li>
+          <li className="text-sm text-green-700 flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-safety-green/20 text-safety-green text-xs flex items-center justify-center shrink-0 mt-0.5">
+              4
+            </span>
+            尽快找到出口，不要在危险区域停留
+          </li>
+          <li className="text-sm text-green-700 flex items-start gap-2">
+            <span className="w-5 h-5 rounded-full bg-safety-green/20 text-safety-green text-xs flex items-center justify-center shrink-0 mt-0.5">
+              5
+            </span>
+            收集防烟面罩可以减少火焰伤害
+          </li>
+        </ul>
+      </motion.div>
 
       {collectedItems.length > 0 && (
         <motion.div
@@ -188,53 +208,6 @@ export default function EscapeReport() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-white rounded-2xl p-5 shadow-sm border-2 border-dashed border-brand-orange/30 mb-4"
-      >
-        <div className="flex items-center gap-2 mb-3">
-          <ElephantMascot mood="thinking" size="sm" />
-          <h3 className="font-title text-lg text-brand-orange">小象的复盘分析</h3>
-        </div>
-
-        {loading ? (
-          <AILoading text="小象正在分析你的表现..." />
-        ) : aiError ? (
-          <p className="text-dark-text/50 text-sm">AI生成失败，请根据上方数据自行复盘</p>
-        ) : (
-          <div className="space-y-4">
-            {aiSuggestions.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium text-dark-text mb-2">改进建议</h4>
-                <ul className="space-y-2">
-                  {aiSuggestions.map((s, i) => (
-                    <li key={i} className="text-sm text-dark-text/80 flex items-start gap-2">
-                      <span className="w-5 h-5 rounded-full bg-brand-orange/10 text-brand-orange text-xs flex items-center justify-center shrink-0 mt-0.5">
-                        {i + 1}
-                      </span>
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {aiKnowledge && (
-              <div>
-                <h4 className="text-sm font-medium text-dark-text mb-2">安全知识补充</h4>
-                <p className="text-sm text-dark-text/80 leading-relaxed whitespace-pre-wrap">{aiKnowledge}</p>
-              </div>
-            )}
-
-            {aiReport && !aiSuggestions.length && !aiKnowledge && (
-              <p className="text-sm text-dark-text/80 leading-relaxed whitespace-pre-wrap">{aiReport}</p>
-            )}
-          </div>
-        )}
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
         className="bg-yellow-50 rounded-2xl p-4 border border-yellow-200 mb-6"
       >
         <div className="flex items-start gap-2">

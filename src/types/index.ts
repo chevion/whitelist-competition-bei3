@@ -41,8 +41,8 @@ export interface MapItem {
 
 export interface MapObstacle {
   position: MapCell;
-  type: 'wall' | 'fire' | 'debris' | 'flood' | 'locked-door' | 'door';
-  name: string;
+  type: 'wall' | 'fire' | 'debris' | 'flood' | 'locked-door' | 'door' | 'desk' | 'bed' | 'seat';
+  name?: string;
 }
 
 export interface MapTemplate {

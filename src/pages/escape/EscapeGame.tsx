@@ -9,8 +9,9 @@ const TICK_MS = 1000;
 const FIRE_SPREAD_INTERVAL = 5000;
 const BURN_DAMAGE_PER_TICK = 3;
 const FIRE_TOUCH_DAMAGE = 15;
+const EARTHQUAKE_INTERVAL = 10000;
 
-type CellType = 'empty' | 'wall' | 'fire' | 'debris' | 'locked-door' | 'flood' | 'door';
+type CellType = 'empty' | 'wall' | 'fire' | 'debris' | 'locked-door' | 'flood' | 'door' | 'desk' | 'bed' | 'seat';
 
 export default function EscapeGame() {
   const navigate = useNavigate();
@@ -26,6 +27,9 @@ export default function EscapeGame() {
   const playerPosRef = useRef<MapCell>({ x: 0, y: 0 });
   const gameOverRef = useRef(false);
   const gameWonRef = useRef(false);
+  const earthquakeRef = useRef({ active: false, offsetX: 0, offsetY: 0 });
+
+  const [earthquakeActive, setEarthquakeActive] = useState(false);
 
   const {
     currentMap,
@@ -129,6 +133,32 @@ export default function EscapeGame() {
     return g;
   }, []);
 
+  const findAdjacentEmptyCell = (grid: CellType[][], x: number, y: number): MapCell | null => {
+    const directions = [
+      { dx: 0, dy: -1 },
+      { dx: 0, dy: 1 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 0 },
+      { dx: -1, dy: -1 },
+      { dx: 1, dy: -1 },
+      { dx: -1, dy: 1 },
+      { dx: 1, dy: 1 }
+    ];
+    for (const d of directions) {
+      const nx = x + d.dx;
+      const ny = y + d.dy;
+      if (ny >= 0 && ny < grid.length && nx >= 0 && nx < grid[0].length) {
+        if (grid[ny][nx] === 'empty') {
+          return { x: nx, y: ny };
+        }
+      }
+    }
+    return null;
+  };
+
+  const [hasFlashlight, setHasFlashlight] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
   const initGame = useCallback(() => {
     if (!currentMap) return;
 
@@ -170,6 +200,14 @@ export default function EscapeGame() {
     }
     blockedKeys.add(`${currentMap.startPoint.x},${currentMap.startPoint.y}`);
     blockedKeys.add(`${currentMap.endPoint.x},${currentMap.endPoint.y}`);
+    
+    const startX = currentMap.startPoint.x;
+    const startY = currentMap.startPoint.y;
+    const flashlightPos = findAdjacentEmptyCell(g, startX, startY);
+    if (flashlightPos) {
+      blockedKeys.add(`${flashlightPos.x},${flashlightPos.y}`);
+    }
+    
     for (let r = 0; r < g.length; r++) {
       for (let c = 0; c < g[0].length; c++) {
         if (g[r][c] === 'empty' && !blockedKeys.has(`${c},${r}`)) {
@@ -184,8 +222,19 @@ export default function EscapeGame() {
 
     const im = new Map<string, MapItem>();
     const usedKeys = new Set<string>();
+    
+    if (flashlightPos) {
+      im.set(`${flashlightPos.x},${flashlightPos.y}`, {
+        type: 'flashlight',
+        name: '手电筒',
+        position: flashlightPos
+      });
+      usedKeys.add(`${flashlightPos.x},${flashlightPos.y}`);
+    }
+    
     for (let idx = 0; idx < currentMap.items.length; idx++) {
       const item = currentMap.items[idx];
+      if (item.type === 'flashlight') continue;
       let placed = false;
       for (const cell of emptyCells) {
         const key = `${cell.x},${cell.y}`;
@@ -264,12 +313,30 @@ export default function EscapeGame() {
 
     if (cellType === 'fire') {
       const curHealth = healthRef.current;
-      setHealth(Math.max(0, curHealth - FIRE_TOUCH_DAMAGE));
+      const hasBandage = useGameStore.getState().collectedItems.some(i => i.includes('创可贴'));
+      const hasCotton = useGameStore.getState().collectedItems.some(i => i.includes('棉布') || i.includes('毛巾'));
+      
+      if (hasBandage && curHealth < 100) {
+        setHealth(Math.min(100, curHealth + 10));
+        showNotification('🩹 自动使用创可贴，恢复10点生命！');
+        const items = useGameStore.getState().collectedItems;
+        const newItems = items.filter(i => !i.includes('创可贴'));
+        useGameStore.setState({ collectedItems: newItems });
+      } else if (hasCotton && curHealth < 100) {
+        setHealth(Math.min(100, curHealth + 15));
+        showNotification('🧣 自动使用棉布，恢复15点生命！');
+        const items = useGameStore.getState().collectedItems;
+        const newItems = items.filter(i => !i.includes('棉布') && !i.includes('毛巾'));
+        useGameStore.setState({ collectedItems: newItems });
+      } else {
+        setHealth(Math.max(0, curHealth - FIRE_TOUCH_DAMAGE));
+        addError('走进了火焰区域！');
+      }
+      
       if (!burningRef.current) {
         setBurning(true);
         showNotification('🔥 你被灼烧了！快找创可贴或棉布止血！');
       }
-      addError('走进了火焰区域！');
     }
 
     setPlayerPosition(newPos);
@@ -277,35 +344,38 @@ export default function EscapeGame() {
     const itemKey = `${newPos.x},${newPos.y}`;
     const item = itemMapRef.current.get(itemKey);
     if (item && !collectedSetRef.current.has(itemKey)) {
-      collectItem(item.name);
-      const newSet = new Set(collectedSetRef.current).add(itemKey);
-      setCollectedSet(newSet);
-      collectedSetRef.current = newSet;
+        collectItem(item.name);
+        const newSet = new Set(collectedSetRef.current).add(itemKey);
+        setCollectedSet(newSet);
+        collectedSetRef.current = newSet;
 
-      if (item.type === 'bandage') {
-        setBurning(false);
-        const curH = useGameStore.getState().health;
-        setHealth(Math.min(100, curH + 10));
-        showNotification('🩹 使用创可贴，灼烧停止！恢复10点生命');
-      } else if (item.type === 'cotton') {
-        setBurning(false);
-        const curH = useGameStore.getState().health;
-        setHealth(Math.min(100, curH + 15));
-        showNotification('🧣 使用棉布/湿毛巾，灼烧停止！恢复15点生命');
-      } else if (item.type === 'mask') {
-        showNotification('😷 戴上防烟面罩，减少火焰伤害！');
-      } else if (item.type === 'key') {
-        showNotification('🔑 找到钥匙！去打开锁着的门吧！');
-      } else if (item.type === 'flashlight') {
-        showNotification('🔦 拿到手电筒！');
-      } else if (item.type === 'firstaid') {
-        const curH = useGameStore.getState().health;
-        setHealth(Math.min(100, curH + 20));
-        showNotification('➕ 使用急救包，恢复20点生命！');
-      } else {
-        showNotification(`拾取了 ${item.name}`);
+        if (item.type === 'mask') {
+          showNotification('😷 戴上防烟面罩，减少火焰伤害！');
+        } else if (item.type === 'key') {
+          showNotification('🔑 找到钥匙！去打开锁着的门吧！');
+        } else if (item.type === 'flashlight') {
+          showNotification('🔦 拿到手电筒！5秒后周围将陷入黑暗！');
+          setHasFlashlight(true);
+          setTimeout(() => {
+            if (!gameOverRef.current && !gameWonRef.current) {
+              setIsDark(true);
+              showNotification('🌑 停电了！只能依靠手电筒照明！');
+            }
+          }, 5000);
+        } else if (item.type === 'firstaid') {
+          showNotification('➕ 找到急救包！');
+        } else if (item.type === 'phone') {
+          showNotification('📞 拿到手机！');
+        } else if (item.type === 'bandage') {
+          showNotification('🩹 收集到创可贴，放入背包！');
+        } else if (item.type === 'cotton') {
+          showNotification('🧣 收集到棉布，放入背包！');
+        } else if (item.type === 'exit-sign') {
+          showNotification('🚪 找到出口标识！');
+        } else {
+          showNotification(`拾取了 ${item.name}`);
+        }
       }
-    }
 
     if (newPos.x === currentMap.endPoint.x && newPos.y === currentMap.endPoint.y) {
       setGameWon(true);
@@ -364,12 +434,42 @@ export default function EscapeGame() {
       const interval = setInterval(() => {
         const curH = useGameStore.getState().health;
         const hasMask = useGameStore.getState().collectedItems.some(i => i.includes('面罩'));
-        const dmg = hasMask ? 1 : BURN_DAMAGE_PER_TICK;
-        setHealth(Math.max(0, curH - dmg));
+        const hasBandage = useGameStore.getState().collectedItems.some(i => i.includes('创可贴'));
+        const hasCotton = useGameStore.getState().collectedItems.some(i => i.includes('棉布') || i.includes('毛巾'));
+        const hasFirstAid = useGameStore.getState().collectedItems.some(i => i.includes('急救'));
+        
+        if (hasFirstAid) {
+          const items = useGameStore.getState().collectedItems;
+          const newItems = items.filter(i => !i.includes('急救'));
+          useGameStore.setState({ collectedItems: newItems });
+          setHealth(Math.min(100, curH + 30));
+          setBurning(false);
+          burningRef.current = false;
+          showNotification('💊 使用急救包，恢复30点生命！灼伤状态已解除！');
+        } else if (hasCotton) {
+          const items = useGameStore.getState().collectedItems;
+          const newItems = items.filter(i => !i.includes('棉布') && !i.includes('毛巾'));
+          useGameStore.setState({ collectedItems: newItems });
+          setHealth(Math.min(100, curH + 15));
+          setBurning(false);
+          burningRef.current = false;
+          showNotification('🧣 使用棉布，恢复15点生命！灼伤状态已解除！');
+        } else if (hasBandage) {
+          const items = useGameStore.getState().collectedItems;
+          const newItems = items.filter(i => !i.includes('创可贴'));
+          useGameStore.setState({ collectedItems: newItems });
+          setHealth(Math.min(100, curH + 10));
+          setBurning(false);
+          burningRef.current = false;
+          showNotification('🩹 使用绷带，恢复10点生命！灼伤状态已解除！');
+        } else {
+          const dmg = hasMask ? 1 : BURN_DAMAGE_PER_TICK;
+          setHealth(Math.max(0, curH - dmg));
+        }
       }, TICK_MS);
       return () => clearInterval(interval);
     }
-  }, [burning, gameOver, gameWon, setHealth]);
+  }, [burning, gameOver, gameWon, setHealth, showNotification]);
 
   useEffect(() => {
     if (health <= 0 && !gameOver && !gameWon) {
@@ -397,7 +497,7 @@ export default function EscapeGame() {
           const ny = fc.y + d.dy;
           if (ny >= 0 && ny < newGrid.length && nx >= 0 && nx < newGrid[0].length) {
             const cell = newGrid[ny][nx];
-            if (cell === 'empty' || cell === 'door') {
+            if ((cell === 'empty' || cell === 'door') && !itemMapRef.current.has(`${nx},${ny}`)) {
               newGrid[ny][nx] = 'fire';
               newFrontier.push({ x: nx, y: ny });
             }
@@ -417,14 +517,50 @@ export default function EscapeGame() {
             showNotification('🔥 火焰蔓延到你身边！快找棉布止血！');
           }
           const curH = healthRef.current;
-          setHealth(Math.max(0, curH - 5));
-          addError('被蔓延的火焰灼烧！');
+          const hasBandage = useGameStore.getState().collectedItems.some(i => i.includes('创可贴'));
+          const hasCotton = useGameStore.getState().collectedItems.some(i => i.includes('棉布') || i.includes('毛巾'));
+          
+          if (hasBandage && curH < 100) {
+            setHealth(Math.min(100, curH + 10));
+            showNotification('🩹 自动使用创可贴，恢复10点生命！');
+            const items = useGameStore.getState().collectedItems;
+            const newItems = items.filter(i => !i.includes('创可贴'));
+            useGameStore.setState({ collectedItems: newItems });
+          } else if (hasCotton && curH < 100) {
+            setHealth(Math.min(100, curH + 15));
+            showNotification('🧣 自动使用棉布，恢复15点生命！');
+            const items = useGameStore.getState().collectedItems;
+            const newItems = items.filter(i => !i.includes('棉布') && !i.includes('毛巾'));
+            useGameStore.setState({ collectedItems: newItems });
+          } else {
+            setHealth(Math.max(0, curH - 5));
+            addError('被蔓延的火焰灼烧！');
+          }
         }
       }
     }, FIRE_SPREAD_INTERVAL);
 
     return () => clearInterval(interval);
   }, [currentMap, setGrid, setBurning, setHealth, addError, showNotification]);
+
+  useEffect(() => {
+    if (gameOverRef.current || gameWonRef.current || !currentMap) return;
+
+    const earthquakeInterval = setInterval(() => {
+      if (gameOverRef.current || gameWonRef.current) return;
+      
+      earthquakeRef.current.active = true;
+      setEarthquakeActive(true);
+      showNotification('⚠️ 地震来袭！');
+      
+      setTimeout(() => {
+        earthquakeRef.current.active = false;
+        setEarthquakeActive(false);
+      }, 1500);
+    }, EARTHQUAKE_INTERVAL);
+
+    return () => clearInterval(earthquakeInterval);
+  }, [showNotification]);
 
   useEffect(() => {
     if (gameOver || gameWon) return;
@@ -442,20 +578,30 @@ export default function EscapeGame() {
     const render = () => {
       ctx.clearRect(0, 0, canvasW, canvasH);
 
+      let offsetX = 0;
+      let offsetY = 0;
+      if (earthquakeRef.current.active) {
+        offsetX = (Math.random() - 0.5) * 8;
+        offsetY = (Math.random() - 0.5) * 8;
+      }
+
       const sceneId = currentMap!.id;
 
       if (sceneId === 'school-classroom') {
-        ctx.fillStyle = '#FEF9F0';
+        ctx.fillStyle = '#ADD8E6';
       } else if (sceneId === 'hospital') {
-        ctx.fillStyle = '#F0F7FF';
+        ctx.fillStyle = '#ADD8E6';
       } else {
-        ctx.fillStyle = '#1A1A2E';
+        ctx.fillStyle = '#ADD8E6';
       }
       ctx.fillRect(0, 0, canvasW, canvasH);
 
       const g = gridRef.current;
       const cs = collectedSetRef.current;
       const im = itemMapRef.current;
+
+      ctx.save();
+      ctx.translate(offsetX, offsetY);
 
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
@@ -464,102 +610,32 @@ export default function EscapeGame() {
           const cy = r * CELL;
 
           if (cellType === 'wall') {
-            if (sceneId === 'school-classroom') {
-              ctx.fillStyle = '#8B7355';
-              ctx.fillRect(cx, cy, CELL, CELL);
-              ctx.fillStyle = '#A0896C';
-              ctx.fillRect(cx + 1, cy + 1, CELL - 2, 3);
-              ctx.fillRect(cx + 1, cy + 1, 3, CELL - 2);
-              ctx.fillStyle = '#6B5740';
-              ctx.fillRect(cx + CELL - 3, cy + 1, 2, CELL - 1);
-              ctx.fillRect(cx + 1, cy + CELL - 3, CELL - 1, 2);
-            } else if (sceneId === 'hospital') {
-              ctx.fillStyle = '#D1D5DB';
-              ctx.fillRect(cx, cy, CELL, CELL);
-              ctx.fillStyle = '#E5E7EB';
-              ctx.fillRect(cx + 1, cy + 1, CELL - 2, 3);
-              ctx.fillRect(cx + 1, cy + 1, 3, CELL - 2);
-              ctx.fillStyle = '#9CA3AF';
-              ctx.fillRect(cx + CELL - 3, cy + 1, 2, CELL - 1);
-              ctx.fillRect(cx + 1, cy + CELL - 3, CELL - 1, 2);
-            } else {
-              ctx.fillStyle = '#2D2D4A';
-              ctx.fillRect(cx, cy, CELL, CELL);
-              ctx.fillStyle = '#3D3D5C';
-              ctx.fillRect(cx + 1, cy + 1, CELL - 2, 3);
-              ctx.fillRect(cx + 1, cy + 1, 3, CELL - 2);
-              ctx.fillStyle = '#1D1D3A';
-              ctx.fillRect(cx + CELL - 3, cy + 1, 2, CELL - 1);
-              ctx.fillRect(cx + 1, cy + CELL - 3, CELL - 1, 2);
-            }
+            ctx.fillStyle = '#9CA3AF';
+            ctx.fillRect(cx, cy, CELL, CELL);
           } else if (cellType === 'door') {
-            ctx.fillStyle = sceneId === 'cinema' ? '#2A2A40' : '#FEF3C7';
+            ctx.fillStyle = '#D4D4D4';
             ctx.fillRect(cx, cy, CELL, CELL);
-            if (sceneId === 'hospital') {
-              ctx.fillStyle = '#E8E8E8';
-              ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
-              ctx.fillStyle = '#F5F5F5';
-              ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
-              ctx.fillStyle = '#3B82F6';
-              ctx.beginPath();
-              ctx.arc(cx + CELL / 2, cy + CELL / 2, 4, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = '#60A5FA';
-              ctx.beginPath();
-              ctx.arc(cx + CELL / 2, cy + CELL / 2, 2, 0, Math.PI * 2);
-              ctx.fill();
-            } else if (sceneId === 'cinema') {
-              ctx.fillStyle = '#4A4A6A';
-              ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
-              ctx.fillStyle = '#5A5A7A';
-              ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
-              ctx.fillStyle = '#22C55E';
-              ctx.beginPath();
-              ctx.arc(cx + CELL - 12, cy + CELL / 2, 3, 0, Math.PI * 2);
-              ctx.fill();
-            } else {
-              ctx.fillStyle = '#92400E';
-              ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
-              ctx.fillStyle = '#B45309';
-              ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
-              ctx.fillStyle = '#FCD34D';
-              ctx.beginPath();
-              ctx.arc(cx + CELL - 12, cy + CELL / 2, 3, 0, Math.PI * 2);
-              ctx.fill();
-            }
+            ctx.fillStyle = '#A3A3A3';
+            ctx.fillRect(cx + CELL / 2 - 2, cy + 4, 4, CELL - 6);
+            ctx.fillStyle = '#737373';
+            ctx.beginPath();
+            ctx.arc(cx + CELL / 2 + 2, cy + CELL / 2, 2, 0, Math.PI * 2);
+            ctx.fill();
           } else if (cellType === 'locked-door') {
-            ctx.fillStyle = sceneId === 'cinema' ? '#2A2A40' : '#FEF3C7';
+            ctx.fillStyle = '#C4C4C4';
             ctx.fillRect(cx, cy, CELL, CELL);
-            if (sceneId === 'hospital') {
-              ctx.fillStyle = '#C0C0C0';
-              ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
-              ctx.fillStyle = '#D0D0D0';
-              ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
-              ctx.fillStyle = '#EF4444';
-              ctx.beginPath();
-              ctx.arc(cx + CELL / 2, cy + CELL / 2, 5, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = '#FCA5A5';
-              ctx.beginPath();
-              ctx.arc(cx + CELL / 2, cy + CELL / 2, 2.5, 0, Math.PI * 2);
-              ctx.fill();
-            } else {
-              ctx.fillStyle = '#7C2D12';
-              ctx.fillRect(cx + 4, cy + 2, CELL - 8, CELL - 4);
-              ctx.fillStyle = '#991B1B';
-              ctx.fillRect(cx + 6, cy + 4, CELL - 12, CELL - 8);
-              ctx.fillStyle = '#FCD34D';
-              ctx.beginPath();
-              ctx.arc(cx + CELL / 2, cy + CELL / 2, 5, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = '#7C2D12';
-              ctx.beginPath();
-              ctx.arc(cx + CELL / 2, cy + CELL / 2, 2.5, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillRect(cx + CELL / 2 - 1.5, cy + CELL / 2 + 2, 3, 6);
-            }
+            ctx.fillStyle = '#A3A3A3';
+            ctx.fillRect(cx + CELL / 2 - 2, cy + 4, 4, CELL - 6);
+            ctx.fillStyle = '#EF4444';
+            ctx.beginPath();
+            ctx.arc(cx + CELL / 2 + 2, cy + CELL / 2, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#EF4444';
+            ctx.fillRect(cx + CELL / 2 - 4, cy + CELL / 2 - 1, 8, 6);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(cx + CELL / 2 - 2, cy + CELL / 2, 4, 3);
           } else if (cellType === 'fire') {
-            ctx.fillStyle = '#450A0A';
+            ctx.fillStyle = '#E6F3FF';
             ctx.fillRect(cx, cy, CELL, CELL);
             const time = Date.now() / 150;
             for (let i = 0; i < 4; i++) {
@@ -576,26 +652,33 @@ export default function EscapeGame() {
               ctx.arc(fx, fy, fs, 0, Math.PI * 2);
               ctx.fill();
             }
+          } else if (cellType === 'desk') {
+            ctx.fillStyle = '#D4A574';
+            ctx.fillRect(cx + 4, cy + 8, CELL - 8, CELL - 16);
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(cx + 4, cy + CELL - 8, CELL - 8, 8);
+            ctx.fillRect(cx + 6, cy + 8, 4, CELL - 8);
+            ctx.fillRect(cx + CELL - 10, cy + 8, 4, CELL - 8);
+          } else if (cellType === 'bed') {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(cx + 4, cy + 4, CELL - 8, CELL - 8);
+            ctx.fillStyle = '#E5E7EB';
+            ctx.fillRect(cx + 6, cy + 6, CELL - 12, CELL - 12);
+            ctx.fillStyle = '#FF6B6B';
+            ctx.fillRect(cx + CELL - 12, cy + 8, 8, CELL - 16);
+          } else if (cellType === 'seat') {
+            ctx.fillStyle = '#4A5568';
+            ctx.beginPath();
+            ctx.ellipse(cx + CELL / 2, cy + CELL - 8, CELL / 2 - 4, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#2D3748';
+            ctx.fillRect(cx + CELL / 2 - 8, cy + 4, 16, CELL - 12);
           } else {
-            if (sceneId === 'school-classroom') {
-              ctx.fillStyle = '#FFF8EE';
-              ctx.fillRect(cx, cy, CELL, CELL);
-              ctx.strokeStyle = '#E8DCC8';
-              ctx.lineWidth = 0.3;
-              ctx.strokeRect(cx, cy, CELL, CELL);
-            } else if (sceneId === 'hospital') {
-              ctx.fillStyle = '#F8FBFF';
-              ctx.fillRect(cx, cy, CELL, CELL);
-              ctx.strokeStyle = '#D4E4F7';
-              ctx.lineWidth = 0.3;
-              ctx.strokeRect(cx, cy, CELL, CELL);
-            } else {
-              ctx.fillStyle = '#1E1E38';
-              ctx.fillRect(cx, cy, CELL, CELL);
-              ctx.strokeStyle = '#2A2A4A';
-              ctx.lineWidth = 0.3;
-              ctx.strokeRect(cx, cy, CELL, CELL);
-            }
+            ctx.fillStyle = '#E6F3FF';
+            ctx.fillRect(cx, cy, CELL, CELL);
+            ctx.strokeStyle = '#CCE0FF';
+            ctx.lineWidth = 0.3;
+            ctx.strokeRect(cx, cy, CELL, CELL);
           }
         }
       }
@@ -708,38 +791,48 @@ export default function EscapeGame() {
       ctx.fillText('出口', epx + CELL / 2, epy + CELL / 2);
 
       const pp = playerPosRef.current;
-      const pd = useGameStore.getState().playerDirection;
       const px = pp.x * CELL + CELL / 2;
       const py = pp.y * CELL + CELL / 2;
 
       ctx.save();
       ctx.translate(px, py);
 
-      const dirAngles: Record<string, number> = { up: 0, right: 90, down: 180, left: 270 };
-      ctx.rotate((dirAngles[pd] || 0) * Math.PI / 180);
+      const isMoving = keysRef.current.size > 0;
+      const walkTime = isMoving ? Date.now() / 150 : 0;
+      const leftLegOffset = isMoving ? Math.sin(walkTime) * 4 : 0;
+      const rightLegOffset = isMoving ? Math.sin(walkTime + Math.PI) * 4 : 0;
 
-      ctx.fillStyle = burningRef.current ? '#FCA5A5' : '#93C5FD';
-      ctx.beginPath();
-      ctx.arc(0, 0, PLAYER_SIZE / 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = burningRef.current ? '#EF4444' : '#3B82F6';
+      const bodyColor = burningRef.current ? '#FF6B6B' : '#87CEEB';
+      const strokeColor = burningRef.current ? '#CC0000' : '#4A90D9';
+
+      ctx.fillStyle = '#1A1A1A';
+      ctx.strokeStyle = '#2D2D2D';
       ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, PLAYER_SIZE / 2 - 2, 0, Math.PI * 2);
+      ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = '#1E40AF';
-      ctx.beginPath();
-      ctx.arc(-5, -4, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(5, -4, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = 'white';
-      ctx.beginPath();
-      ctx.arc(-4, -5, 1.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(6, -5, 1.2, 0, Math.PI * 2);
-      ctx.fill();
+      if (burningRef.current) {
+        ctx.strokeStyle = '#444444';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-8, -2);
+        ctx.lineTo(-2, -2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(2, -2);
+        ctx.lineTo(8, -2);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.ellipse(-5, -3, 2, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(5, -3, 2, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       if (burningRef.current) {
         const ft = Date.now() / 100;
@@ -755,6 +848,48 @@ export default function EscapeGame() {
 
       ctx.restore();
 
+      if (isDark && hasFlashlight) {
+        const angleMap: Record<string, number> = { up: -Math.PI / 2, right: 0, down: Math.PI / 2, left: Math.PI };
+        const angle = angleMap[useGameStore.getState().playerDirection] || -Math.PI / 2;
+        
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(angle);
+        
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, canvasW, -Math.PI / 6, Math.PI / 6);
+        ctx.closePath();
+        ctx.clip();
+        
+        ctx.restore();
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.beginPath();
+        ctx.rect(0, 0, canvasW, canvasH);
+        ctx.moveTo(px, py);
+        ctx.arc(px, py, CELL * 4, angle - Math.PI / 6, angle + Math.PI / 6);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(angle);
+        
+        const gradient = ctx.createConicGradient(0, 0, 0);
+        gradient.addColorStop(0, 'rgba(255, 255, 220, 0.15)');
+        gradient.addColorStop(0.3, 'rgba(255, 255, 220, 0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, CELL * 4, -Math.PI / 6, Math.PI / 6);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.restore();
+      }
+
       animFrameRef.current = requestAnimationFrame(render);
     };
 
@@ -765,16 +900,17 @@ export default function EscapeGame() {
         cancelAnimationFrame(animFrameRef.current);
       }
     };
-  }, [currentMap, grid, gameOver, gameWon, fireOrigin]);
+  }, [currentMap, grid, gameOver, gameWon, fireOrigin, earthquakeActive]);
 
   useEffect(() => {
     if (gameOver || gameWon) {
+      const delay = gameOver ? 5000 : 2500;
       const timer = setTimeout(() => {
         useGameStore.setState({
           timeRemaining: elapsedTime || (150 - timeRemaining),
         });
         navigate('/escape/report');
-      }, 2500);
+      }, delay);
       return () => clearTimeout(timer);
     }
   }, [gameOver, gameWon, navigate, elapsedTime, timeRemaining]);
@@ -832,20 +968,19 @@ export default function EscapeGame() {
       )}
 
       <div className="relative">
-        {(gameOver || gameWon) && (
+        {gameOver && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-gradient-to-br from-red-700 via-red-600 to-red-800 rounded-xl overflow-hidden">
+            <div className="text-center relative z-10">
+              <p className="font-bold text-5xl text-white drop-shadow-lg">失败了</p>
+              <p className="text-white/80 mt-2">生命值耗尽</p>
+            </div>
+          </div>
+        )}
+        {gameWon && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 rounded-xl">
             <div className="text-center">
-              {gameWon ? (
-                <>
-                  <p className="text-4xl mb-2">🎉</p>
-                  <p className="font-title text-2xl text-white">逃生成功！</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-4xl mb-2">😢</p>
-                  <p className="font-title text-2xl text-white">{health <= 0 ? '生命值耗尽' : '时间到'}</p>
-                </>
-              )}
+              <p className="text-4xl mb-2">🎉</p>
+              <p className="font-title text-2xl text-white">逃生成功！</p>
             </div>
           </div>
         )}
