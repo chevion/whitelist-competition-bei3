@@ -1,7 +1,5 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { Settings, Home, Footprints, BookOpen, Package, MapPin, Heart } from 'lucide-react';
-import { useAppStore } from '@/stores/appStore';
-import SettingsModal from './SettingsModal';
+import { Home, Footprints, BookOpen, Package, MapPin, Heart } from 'lucide-react';
 
 const navItems = [
   { path: '/modules', label: '首页', icon: Home },
@@ -14,7 +12,6 @@ const navItems = [
 
 export default function Layout() {
   const location = useLocation();
-  const { setShowSettings } = useAppStore();
 
   return (
     <div className="min-h-screen bg-warm-white font-body">
@@ -53,12 +50,12 @@ export default function Layout() {
               })}
             </nav>
 
-            <button
-              onClick={() => setShowSettings(true)}
-              className="p-2 rounded-lg text-dark-text/60 hover:bg-gray-100 hover:text-dark-text transition-colors"
+            <Link
+              to="/"
+              className="px-3 py-1.5 rounded-lg text-dark-text/60 hover:bg-gray-100 hover:text-dark-text transition-colors no-underline text-sm font-medium"
             >
-              <Settings size={20} />
-            </button>
+              地区选择
+            </Link>
           </div>
         </div>
       </header>
@@ -89,8 +86,6 @@ export default function Layout() {
           })}
         </div>
       </nav>
-
-      <SettingsModal />
     </div>
   );
 }

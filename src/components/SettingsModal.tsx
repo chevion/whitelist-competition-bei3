@@ -1,43 +1,32 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Key, Globe, Trash2 } from 'lucide-react';
+import { X, Globe, Trash2 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 import { provinces } from '@/data/provinces';
-import { setApiKey as saveApiKey, setBaseUrl as saveBaseUrl, setProvince as saveProvince, getApiKey, getBaseUrl, getProvince, clearAll } from '@/services/storageService';
+import { setProvince as saveProvince, getProvince, clearAll } from '@/services/storageService';
 
 export default function SettingsModal() {
-  const { showSettings, setShowSettings, setProvince, setApiKey, setBaseUrl } = useAppStore();
+  const { showSettings, setShowSettings, setProvince } = useAppStore();
 
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [baseUrlInput, setBaseUrlInput] = useState('');
   const [provinceInput, setProvinceInput] = useState('');
 
   useEffect(() => {
     if (showSettings) {
-      setApiKeyInput(getApiKey());
-      setBaseUrlInput(getBaseUrl() || 'https://api.openai.com/v1');
       setProvinceInput(getProvince() || useAppStore.getState().province);
     }
   }, [showSettings]);
 
   const handleSave = () => {
-    saveApiKey(apiKeyInput);
-    saveBaseUrl(baseUrlInput);
     saveProvince(provinceInput);
-    setApiKey(apiKeyInput);
-    setBaseUrl(baseUrlInput);
     setProvince(provinceInput);
     setShowSettings(false);
   };
 
   const handleClear = () => {
-    if (confirm('确定要清除所有本地数据吗？这将删除你的API密钥和所有保存的信息。')) {
+    if (confirm('确定要清除所有本地数据吗？这将删除所有保存的信息。')) {
       clearAll();
-      setApiKeyInput('');
       setProvinceInput('');
       setProvince('');
-      setApiKey('');
-      setBaseUrl('');
     }
   };
 
@@ -82,35 +71,6 @@ export default function SettingsModal() {
                   ))}
                 </select>
                 <p className="text-xs text-dark-text/40 mt-1">用于匹配你所在地区的常见灾害风险</p>
-              </div>
-
-              <div>
-                <label className="flex items-center gap-1.5 text-sm font-medium text-dark-text mb-2">
-                  <Key size={16} className="text-brand-orange" />
-                  API 密钥
-                </label>
-                <input
-                  type="password"
-                  value={apiKeyInput}
-                  onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder="输入你的 OpenAI 兼容 API Key"
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-warm-white text-dark-text outline-none focus:border-brand-orange transition-colors"
-                />
-                <p className="text-xs text-dark-text/40 mt-1">密钥仅存储在本地浏览器中，不会上传到任何服务器</p>
-              </div>
-
-              <div>
-                <label className="flex items-center gap-1.5 text-sm font-medium text-dark-text mb-2">
-                  API 基础地址
-                </label>
-                <input
-                  type="url"
-                  value={baseUrlInput}
-                  onChange={(e) => setBaseUrlInput(e.target.value)}
-                  placeholder="https://api.openai.com/v1"
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-warm-white text-dark-text outline-none focus:border-brand-orange transition-colors"
-                />
-                <p className="text-xs text-dark-text/40 mt-1">支持 OpenAI 兼容格式的 API 地址</p>
               </div>
 
               <div className="flex gap-3">
