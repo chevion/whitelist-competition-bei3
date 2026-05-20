@@ -43,13 +43,13 @@ const toolConfig: { type: ToolType; icon: typeof MousePointer2; label: string }[
 ];
 
 const defaultSizes: Record<string, { w: number; h: number }> = {
-  wall: { w: 120, h: 20 },
-  door: { w: 40, h: 60 },
-  window: { w: 60, h: 20 },
-  sofa: { w: 100, h: 50 },
-  bed: { w: 80, h: 120 },
-  table: { w: 80, h: 60 },
-  extinguisher: { w: 30, h: 30 },
+  wall: { w: GRID, h: GRID },
+  door: { w: GRID, h: GRID },
+  window: { w: GRID, h: GRID },
+  sofa: { w: GRID, h: GRID },
+  bed: { w: GRID, h: GRID },
+  table: { w: GRID, h: GRID },
+  extinguisher: { w: GRID, h: GRID },
 };
 
 const typeLabels: Record<string, string> = {
@@ -323,19 +323,35 @@ export default function EscapeMap() {
 
   const handleMouseUp = () => {
     if (drawing && drawStart && drawCurrent) {
-      const x = Math.min(drawStart.x, drawCurrent.x);
-      const y = Math.min(drawStart.y, drawCurrent.y);
-      const w = Math.max(Math.abs(drawCurrent.x - drawStart.x), GRID);
-      const h = Math.max(Math.abs(drawCurrent.y - drawStart.y), GRID);
-      if (w >= GRID && h >= GRID) {
-        const newEl: DrawElement = {
-          id: nextId(),
-          type: 'wall',
-          x, y, width: w, height: h,
-          isEscapeExit: false,
-        };
-        setElements((prev) => [...prev, newEl]);
-        setSelectedId(newEl.id);
+      const x1 = Math.min(drawStart.x, drawCurrent.x);
+      const y1 = Math.min(drawStart.y, drawCurrent.y);
+      const x2 = Math.max(drawStart.x, drawCurrent.x);
+      const y2 = Math.max(drawStart.y, drawCurrent.y);
+      
+      const startCol = Math.floor(x1 / GRID);
+      const startRow = Math.floor(y1 / GRID);
+      const endCol = Math.floor(x2 / GRID);
+      const endRow = Math.floor(y2 / GRID);
+      
+      const newElements: DrawElement[] = [];
+      for (let row = startRow; row <= endRow; row++) {
+        for (let col = startCol; col <= endCol; col++) {
+          const newEl: DrawElement = {
+            id: nextId(),
+            type: 'wall',
+            x: col * GRID,
+            y: row * GRID,
+            width: GRID,
+            height: GRID,
+            isEscapeExit: false,
+          };
+          newElements.push(newEl);
+        }
+      }
+      
+      if (newElements.length > 0) {
+        setElements((prev) => [...prev, ...newElements]);
+        setSelectedId(newElements[newElements.length - 1].id);
         setEscapePath([]);
       }
     }
@@ -636,81 +652,67 @@ function drawElement(ctx: CanvasRenderingContext2D, el: DrawElement, isSelected:
   switch (el.type) {
     case 'wall':
       ctx.fillStyle = '#4B5563';
-      ctx.fillRect(el.x, el.y, el.width, el.height);
+      ctx.fillRect(el.x, el.y, GRID, GRID);
       break;
 
     case 'door':
       ctx.fillStyle = '#92400E';
-      ctx.fillRect(el.x, el.y, el.width, el.height);
-      ctx.strokeStyle = '#78350F';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(el.x, el.y, el.width, el.height);
-      ctx.beginPath();
-      ctx.strokeStyle = '#D97706';
-      ctx.lineWidth = 1.5;
-      const doorCx = el.x + el.width / 2;
-      const doorCy = el.y + el.height / 2;
-      const doorR = Math.min(el.width, el.height) / 2;
-      ctx.arc(el.x, el.y, doorR, 0, Math.PI / 2);
-      ctx.stroke();
+      ctx.fillRect(el.x, el.y, GRID, GRID);
+      ctx.fillStyle = '#D97706';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('门', el.x + GRID / 2, el.y + GRID / 2);
       break;
 
     case 'window':
-      ctx.fillStyle = '#BFDBFE';
-      ctx.fillRect(el.x, el.y, el.width, el.height);
-      ctx.strokeStyle = '#3B82F6';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(el.x, el.y, el.width, el.height);
-      ctx.beginPath();
-      ctx.moveTo(el.x, el.y + el.height / 2);
-      ctx.lineTo(el.x + el.width, el.y + el.height / 2);
-      ctx.moveTo(el.x + el.width / 2, el.y);
-      ctx.lineTo(el.x + el.width / 2, el.y + el.height);
-      ctx.stroke();
+      ctx.fillStyle = '#ADD8E6';
+      ctx.fillRect(el.x, el.y, GRID, GRID);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('窗', el.x + GRID / 2, el.y + GRID / 2);
       break;
 
     case 'sofa':
       ctx.fillStyle = '#166534';
-      ctx.fillRect(el.x, el.y, el.width, el.height);
-      ctx.fillStyle = '#15803D';
-      ctx.fillRect(el.x + 4, el.y + 4, el.width - 8, el.height * 0.3);
-      ctx.fillRect(el.x + 4, el.y + el.height * 0.7, el.width - 8, el.height * 0.26);
+      ctx.fillRect(el.x, el.y, GRID, GRID);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 8px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('沙', el.x + GRID / 2, el.y + GRID / 2);
       break;
 
     case 'bed':
       ctx.fillStyle = '#DBEAFE';
-      ctx.fillRect(el.x, el.y, el.width, el.height);
-      ctx.strokeStyle = '#93C5FD';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(el.x, el.y, el.width, el.height);
-      ctx.fillStyle = '#93C5FD';
-      ctx.fillRect(el.x + 4, el.y + 4, el.width - 8, el.height * 0.2);
+      ctx.fillRect(el.x, el.y, GRID, GRID);
+      ctx.fillStyle = '#3B82F6';
+      ctx.font = 'bold 8px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('床', el.x + GRID / 2, el.y + GRID / 2);
       break;
 
     case 'table':
       ctx.fillStyle = '#92400E';
-      ctx.fillRect(el.x, el.y, el.width, el.height);
-      ctx.strokeStyle = '#78350F';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(el.x, el.y, el.width, el.height);
-      ctx.fillStyle = '#B45309';
-      ctx.fillRect(el.x + 4, el.y + 4, el.width - 8, el.height - 8);
+      ctx.fillRect(el.x, el.y, GRID, GRID);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 8px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('桌', el.x + GRID / 2, el.y + GRID / 2);
       break;
 
     case 'extinguisher':
-      const r = Math.min(el.width, el.height) / 2;
       ctx.fillStyle = '#DC2626';
-      ctx.beginPath();
-      ctx.arc(el.x + el.width / 2, el.y + el.height / 2, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#991B1B';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+      ctx.fillRect(el.x, el.y, GRID, GRID);
       ctx.fillStyle = '#FFFFFF';
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('灭', el.x + el.width / 2, el.y + el.height / 2);
+      ctx.fillText('灭', el.x + GRID / 2, el.y + GRID / 2);
       break;
   }
 
@@ -718,12 +720,12 @@ function drawElement(ctx: CanvasRenderingContext2D, el: DrawElement, isSelected:
     ctx.strokeStyle = '#22C55E';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
-    ctx.strokeRect(el.x - 2, el.y - 2, el.width + 4, el.height + 4);
+    ctx.strokeRect(el.x - 2, el.y - 2, GRID + 4, GRID + 4);
     ctx.setLineDash([]);
     ctx.fillStyle = '#22C55E';
-    ctx.font = 'bold 10px sans-serif';
+    ctx.font = 'bold 8px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('出口', el.x + el.width / 2, el.y - 6);
+    ctx.fillText('出口', el.x + GRID / 2, el.y - 4);
   }
 
   if (isSelected) {

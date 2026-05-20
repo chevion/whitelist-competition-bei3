@@ -78,6 +78,9 @@ export default function Quiz() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiQuestionLoading, setAiQuestionLoading] = useState(false);
   const [isAnswered, setIsAnswered] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [feedbackType, setFeedbackType] = useState<'correct' | 'wrong' | 'encourage' | null>(null);
+  const [consecutiveCorrect, setConsecutiveCorrect] = useState(0);
 
   const aiQuestionInserted = useRef(false);
   const answeredKnowledgePoints = useRef<string[]>([]);
@@ -96,6 +99,9 @@ export default function Quiz() {
     setAiLoading(false);
     setAiQuestionLoading(false);
     setIsAnswered(false);
+    setFeedbackMessage(null);
+    setFeedbackType(null);
+    setConsecutiveCorrect(0);
     aiQuestionInserted.current = false;
     answeredKnowledgePoints.current = [];
   }, [province, resetQuiz]);
@@ -185,10 +191,32 @@ export default function Quiz() {
 
       if (isCorrect) {
         setScore(score + 1);
-        const mood: ElephantMood = Math.random() > 0.5 ? 'happy' : 'excited';
-        setElephantMood(mood);
-        setElephantMessage('太棒了！');
+        const newConsecutive = consecutiveCorrect + 1;
+        setConsecutiveCorrect(newConsecutive);
+        
+        if (newConsecutive >= 2) {
+          const encouragements = [
+            '太厉害了！继续保持！',
+            '你真是安全小达人！',
+            '连续答对，厉害极了！',
+            '知识掌握得真牢固！',
+            '继续保持这个势头！',
+          ];
+          setFeedbackMessage(encouragements[Math.floor(Math.random() * encouragements.length)]);
+          setFeedbackType('encourage');
+          setElephantMood('excited');
+          setElephantMessage('太棒了！');
+        } else {
+          setFeedbackMessage('答对了！');
+          setFeedbackType('correct');
+          const mood: ElephantMood = Math.random() > 0.5 ? 'happy' : 'excited';
+          setElephantMood(mood);
+          setElephantMessage('太棒了！');
+        }
       } else {
+        setConsecutiveCorrect(0);
+        setFeedbackMessage('再接再厉！');
+        setFeedbackType('wrong');
         setElephantMood('sad');
         setElephantMessage('我们看看正确答案是什么~');
       }
@@ -223,7 +251,7 @@ export default function Quiz() {
         setAiLoading(false);
       }
     },
-    [isAnswered, currentQuestion, score, setScore, totalAnswered, setTotalAnswered, setUserAnswer, setShowExplanation, tryGenerateAIQuestion],
+    [isAnswered, currentQuestion, score, setScore, totalAnswered, setTotalAnswered, setUserAnswer, setShowExplanation, tryGenerateAIQuestion, consecutiveCorrect],
   );
 
   const handleNext = useCallback(() => {
@@ -254,6 +282,8 @@ export default function Quiz() {
     setAiExplanation(null);
     setAiLoading(false);
     setIsAnswered(false);
+    setFeedbackMessage(null);
+    setFeedbackType(null);
   }, [currentIndex, questions.length, score, setUserAnswer, setShowExplanation]);
 
   const handleRestart = useCallback(() => {
@@ -379,9 +409,30 @@ export default function Quiz() {
               </span>
             </div>
 
-            <h3 className="text-lg font-medium text-dark-text leading-relaxed mb-6">
+            <h3 className="text-lg font-medium text-dark-text leading-relaxed mb-4">
               {currentQuestion.question}
             </h3>
+
+            {/* 反馈提示 */}
+            <AnimatePresence>
+              {feedbackMessage && (
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0, y: -20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.5, opacity: 0, y: -20 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  className={`mb-4 py-3 px-4 rounded-xl text-center font-bold text-lg ${
+                    feedbackType === 'correct'
+                      ? 'bg-safety-green/20 text-safety-green border border-safety-green/30'
+                      : feedbackType === 'encourage'
+                        ? 'bg-brand-orange/20 text-brand-orange border border-brand-orange/30'
+                        : 'bg-danger-red/20 text-danger-red border border-danger-red/30'
+                  }`}
+                >
+                  {feedbackMessage}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* 选项 */}
             <div className="flex flex-col gap-3">
