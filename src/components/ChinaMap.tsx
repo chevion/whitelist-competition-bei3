@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import chinaMapSvgRaw from '/china-map.svg?raw';
 
 interface ProvinceInfo {
   id: string;
@@ -92,10 +93,8 @@ export default function ChinaMap({ selectedProvince, onSelect }: ChinaMapProps) 
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    fetch('/china-map.svg')
-      .then(res => res.text())
-      .then(text => {
-        let modified = text.replace(
+    const text = chinaMapSvgRaw;
+    let modified = text.replace(
           '<g id="features">',
           `<style>
             #features path {
@@ -127,8 +126,6 @@ export default function ChinaMap({ selectedProvince, onSelect }: ChinaMapProps) 
         }
 
         setSvgContent(modified);
-      })
-      .catch(() => {});
   }, [selectedProvince]);
 
   const getProvinceName = useCallback((el: SVGElement): string | null => {
