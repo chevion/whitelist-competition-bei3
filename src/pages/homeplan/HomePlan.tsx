@@ -6,7 +6,7 @@ import ElephantMascot from '@/components/ElephantMascot';
 const entries = [
   {
     title: '家庭逃生图',
-    desc: '绘制你的家庭布局，规划逃生路线',
+    desc: '上传房屋结构图片，智能生成逃生路线',
     icon: Map,
     path: '/home-plan/escape-map',
     color: 'bg-blue-500',
