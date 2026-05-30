@@ -113,7 +113,15 @@ function cleanDistPlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
+  root: 'src',
+  publicDir: path.resolve(process.cwd(), 'public'),
+  resolve: {
+    alias: {
+      '/china-map.svg': path.resolve(process.cwd(), 'public/china-map.svg'),
+    }
+  },
   build: {
+    outDir: '../dist',
     sourcemap: false,
     assetsInlineLimit: 100000000,
   },
