@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { Home, Footprints, BookOpen, Package, MapPin, Heart } from 'lucide-react';
+import { Home, Footprints, BookOpen, Package, MapPin, Heart, Lightbulb } from 'lucide-react';
 
 const navItems = [
   { path: '/modules', label: '首页', icon: Home },
@@ -7,6 +7,7 @@ const navItems = [
   { path: '/quiz', label: '安全问答', icon: BookOpen },
   { path: '/supplies', label: '物资储备', icon: Package },
   { path: '/home-plan', label: '家庭规划', icon: MapPin },
+  { path: '/disaster-recognition', label: '灾害识别', icon: Lightbulb },
   { path: '/home-plan/medical-card', label: '医疗卡', icon: Heart },
 ];
 

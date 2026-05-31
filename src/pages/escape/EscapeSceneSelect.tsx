@@ -34,8 +34,15 @@ const scenes = [
 
 export default function EscapeSceneSelect() {
   const navigate = useNavigate();
-  const { resetGame, setCurrentMap } = useGameStore();
+  const { resetGame, setCurrentMap, setDifficulty } = useGameStore();
   const [loading, setLoading] = useState(false);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'normal' | 'hard'>('normal');
+
+  const difficulties = [
+    { value: 'easy', label: '简单', description: '火焰每7秒蔓延一次' },
+    { value: 'normal', label: '普通', description: '火焰每5秒蔓延一次' },
+    { value: 'hard', label: '困难', description: '火焰每3秒蔓延一次' },
+  ];
 
   const handleSceneClick = async (sceneId: string) => {
     setLoading(true);
@@ -46,6 +53,7 @@ export default function EscapeSceneSelect() {
       playerPosition: template.startPoint,
       timeRemaining: 120,
     });
+    setDifficulty(selectedDifficulty);
     setCurrentMap(template);
 
     setLoading(false);
@@ -72,8 +80,31 @@ export default function EscapeSceneSelect() {
         <ElephantMascot
           mood="excited"
           size="md"
-          message="选一个地方，我们开始演练吧！每个场景都会有火灾和地震的风险。"
+          message="选择难度，然后选一个地方开始演练！"
         />
+      </div>
+
+      <div className="w-full max-w-3xl mb-6">
+        <h3 className="font-title text-lg text-dark-text mb-3 text-center">选择难度</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {difficulties.map((diff) => {
+            const isSelected = selectedDifficulty === diff.value;
+            return (
+              <button
+                key={diff.value}
+                onClick={() => setSelectedDifficulty(diff.value as any)}
+                className={`p-4 rounded-xl border-2 transition-all ${
+                  isSelected
+                    ? 'border-brand-orange bg-brand-orange/10'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className="font-medium text-dark-text">{diff.label}</div>
+                <div className="text-sm text-dark-text/60 mt-1">{diff.description}</div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-3xl">

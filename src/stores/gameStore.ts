@@ -3,7 +3,9 @@ import type { GameState, MapCell, MapTemplate } from '@/types';
 
 interface GameStore extends GameState {
   currentMap: MapTemplate | null;
+  difficulty: 'easy' | 'normal' | 'hard';
   setCurrentMap: (map: MapTemplate) => void;
+  setDifficulty: (difficulty: 'easy' | 'normal' | 'hard') => void;
   setPlayerPosition: (position: MapCell) => void;
   setPlayerDirection: (direction: GameState['playerDirection']) => void;
   setHealth: (health: number) => void;
@@ -35,8 +37,10 @@ const initialState: GameState = {
 export const useGameStore = create<GameStore>((set, get) => ({
   ...initialState,
   currentMap: null,
+  difficulty: 'normal',
 
   setCurrentMap: (currentMap) => set({ currentMap }),
+  setDifficulty: (difficulty) => set({ difficulty }),
   setPlayerPosition: (playerPosition) => set({ playerPosition }),
   setPlayerDirection: (playerDirection) => set({ playerDirection }),
   setHealth: (health) => set({ health }),
@@ -47,7 +51,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setIsComplete: (isComplete) => set({ isComplete }),
   setBurning: (burning) => set({ burning }),
 
-  resetGame: () => set({ ...initialState, path: [{ x: 0, y: 0 }], collectedItems: [], errors: [], currentMap: null }),
+  resetGame: () => set({ ...initialState, path: [{ x: 0, y: 0 }], collectedItems: [], errors: [], currentMap: null, difficulty: 'normal' }),
 
   movePlayer: (direction) => {
     const { playerPosition, path } = get();

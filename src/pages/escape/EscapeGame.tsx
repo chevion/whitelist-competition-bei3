@@ -6,10 +6,15 @@ import type { MapCell, MapTemplate, MapItem } from '@/types';
 const CELL = 40;
 const PLAYER_SIZE = 28;
 const TICK_MS = 1000;
-const FIRE_SPREAD_INTERVAL = 5000;
 const BURN_DAMAGE_PER_TICK = 3;
 const FIRE_TOUCH_DAMAGE = 15;
 const EARTHQUAKE_INTERVAL = 10000;
+
+const FIRE_SPREAD_INTERVALS: Record<'easy' | 'normal' | 'hard', number> = {
+  easy: 7000,
+  normal: 5000,
+  hard: 3000,
+};
 
 type CellType = 'empty' | 'wall' | 'fire' | 'debris' | 'locked-door' | 'flood' | 'door' | 'desk' | 'bed' | 'seat';
 
@@ -39,6 +44,7 @@ export default function EscapeGame() {
     timeRemaining,
     collectedItems,
     burning,
+    difficulty,
     setPlayerPosition,
     setPlayerDirection,
     setHealth,
@@ -538,10 +544,10 @@ export default function EscapeGame() {
           }
         }
       }
-    }, FIRE_SPREAD_INTERVAL);
+    }, FIRE_SPREAD_INTERVALS[difficulty]);
 
     return () => clearInterval(interval);
-  }, [currentMap, setGrid, setBurning, setHealth, addError, showNotification]);
+  }, [currentMap, setGrid, setBurning, setHealth, addError, showNotification, difficulty]);
 
   useEffect(() => {
     if (gameOverRef.current || gameWonRef.current || !currentMap) return;

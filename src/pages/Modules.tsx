@@ -64,7 +64,7 @@ export default function Modules() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center flex flex-col items-center gap-3"
       >
-        <ElephantMascot mood="happy" size="lg" message={`欢迎来到安全小象！让我来保护你的安全吧！`} />
+        <ElephantMascot mood="happy" size="lg" message={`我是安全小象！让我来保护你的安全吧！`} />
         <h1 className="font-title text-3xl md:text-4xl text-brand-orange">选择学习模块</h1>
         {province && (
           <div className="flex items-center gap-2 text-dark-text/60">
