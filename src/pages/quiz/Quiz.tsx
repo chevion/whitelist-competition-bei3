@@ -535,9 +535,21 @@ export default function Quiz() {
               className="overflow-hidden"
             >
               <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5">
+                {isAnswered && userAnswer !== null && userAnswer !== currentQuestion.answer && currentQuestion.wrongExplanations?.[userAnswer] && (
+                  <>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg">❌</span>
+                      <span className="font-medium text-danger-red">为什么不能选这个答案？</span>
+                    </div>
+                    <p className="text-sm text-danger-red/80 leading-relaxed mb-4 bg-danger-red/5 p-3 rounded-lg border border-danger-red/20">
+                      {currentQuestion.wrongExplanations[userAnswer]}
+                    </p>
+                  </>
+                )}
+
                 <div className="flex items-center gap-2 mb-3">
                   <BookOpen size={16} className="text-brand-orange" />
-                  <span className="font-medium text-dark-text">解析</span>
+                  <span className="font-medium text-dark-text">正确答案解析</span>
                 </div>
                 <p className="text-sm text-dark-text/70 leading-relaxed mb-3">
                   {currentQuestion.explanation}

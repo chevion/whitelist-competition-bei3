@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, MapPin, AlertTriangle, CloudRain, Flame, Mountain, Snowflake, Wind, X, Footprints, BookOpen, Package, Heart } from 'lucide-react';
+import { ArrowRight, ArrowLeft, MapPin, AlertTriangle, CloudRain, Flame, Mountain, Snowflake, Wind, X, Footprints, BookOpen, Package, Heart, Phone } from 'lucide-react';
 import ElephantMascot from '@/components/ElephantMascot';
 import ChinaMap from '@/components/ChinaMap';
+import EmergencyCall from '@/components/EmergencyCall';
 import { useAppStore } from '@/stores/appStore';
 import { provinces } from '@/data/provinces';
 import { setProvince as saveProvince } from '@/services/storageService';
@@ -104,6 +105,7 @@ export default function Home() {
   const { setProvince } = useAppStore();
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
   const [selectedDisaster, setSelectedDisaster] = useState<string | null>(null);
+  const [showEmergencyCall, setShowEmergencyCall] = useState(false);
 
   const provinceData = provinces.find((p) => p.name === selectedProvince);
   const risk = provinceData ? riskLabels[provinceData.riskLevel] : null;
@@ -258,15 +260,16 @@ export default function Home() {
                 { title: '安全问答', icon: BookOpen, path: '/quiz', color: 'bg-blue-500' },
                 { title: '物资储备', icon: Package, path: '/supplies', color: 'bg-green-500' },
                 { title: '家庭规划', icon: Heart, path: '/home-plan', color: 'bg-purple-500' },
+                { title: '一键报警', icon: Phone, action: () => setShowEmergencyCall(true), color: 'bg-gradient-to-r from-red-500 to-orange-500' },
               ].map((item, idx) => (
                 <motion.button
-                  key={item.path}
+                  key={item.path || item.action?.name || 'emergency'}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: idx * 0.05 }}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate(item.path)}
+                  onClick={item.action || (() => navigate(item.path!))}
                   className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
                 >
                   <div className={`w-10 h-10 ${item.color} rounded-lg flex items-center justify-center`}>
@@ -383,6 +386,8 @@ export default function Home() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <EmergencyCall isOpen={showEmergencyCall} onClose={() => setShowEmergencyCall(false)} />
       </div>
     </div>
   );

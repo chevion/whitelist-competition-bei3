@@ -11,6 +11,7 @@ import SuppliesResult from '@/pages/supplies/SuppliesResult';
 import HomePlan from '@/pages/homeplan/HomePlan';
 import EscapeMap from '@/pages/homeplan/EscapeMap';
 import MedicalCard from '@/pages/homeplan/MedicalCard';
+import DisasterRecognition from '@/pages/DisasterRecognition';
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/home-plan" element={<HomePlan />} />
           <Route path="/home-plan/escape-map" element={<EscapeMap />} />
           <Route path="/home-plan/medical-card" element={<MedicalCard />} />
+          <Route path="/disaster-recognition" element={<DisasterRecognition />} />
         </Route>
       </Routes>
     </Router>

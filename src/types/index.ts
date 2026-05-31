@@ -10,6 +10,7 @@ export interface Question {
   options: string[];
   answer: number;
   explanation: string;
+  wrongExplanations?: Record<number, string>;
   tags: {
     provinces: string[];
     disasterTypes: string[];

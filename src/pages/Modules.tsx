@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
-import { Footprints, BookOpen, Package, MapPin, Heart, MapPinned } from 'lucide-react';
+import { Footprints, BookOpen, Package, MapPin, Heart, MapPinned, Phone, Siren, Lightbulb } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ElephantMascot from '@/components/ElephantMascot';
+import EmergencyCall from '@/components/EmergencyCall';
 import { useAppStore } from '@/stores/appStore';
 import { provinces } from '@/data/provinces';
+import { useState } from 'react';
 
 const modules = [
   {
@@ -41,10 +43,18 @@ const modules = [
     path: '/home-plan/medical-card',
     gradient: 'from-pink-400 to-rose-400',
   },
+  {
+    title: '灾害识别',
+    desc: '根据自然现象自动识别可能的灾害',
+    icon: Lightbulb,
+    path: '/disaster-recognition',
+    gradient: 'from-cyan-400 to-blue-400',
+  },
 ];
 
 export default function Modules() {
   const { province } = useAppStore();
+  const [showEmergencyCall, setShowEmergencyCall] = useState(false);
   const provinceData = provinces.find((p) => p.name === province);
 
   return (
@@ -99,6 +109,35 @@ export default function Modules() {
           );
         })}
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="w-full max-w-4xl"
+      >
+        <div className="relative bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl p-5 text-white overflow-hidden">
+          <div className="absolute inset-0 bg-black/10" />
+          <div className="relative flex items-center gap-4">
+            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+              <Siren size={28} />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-title text-xl mb-1">一键报警</h3>
+              <p className="text-white/80 text-sm">紧急情况，快速拨打110/120/119</p>
+            </div>
+            <button
+              onClick={() => setShowEmergencyCall(true)}
+              className="flex items-center gap-2 px-5 py-3 bg-white text-red-500 font-bold rounded-xl hover:bg-white/90 transition-colors"
+            >
+              <Phone size={20} />
+              立即报警
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
+      <EmergencyCall isOpen={showEmergencyCall} onClose={() => setShowEmergencyCall(false)} />
     </div>
   );
 }
