@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, RotateCcw, Home, BookOpen, Sparkles } from 'lucide-react';
+import { ChevronRight, RotateCcw, Home, BookOpen, Sparkles, Shield, Zap, Brain } from 'lucide-react';
 import type { Question } from '@/types';
 import { questionBank } from '@/data/questionBank';
 import { provinces } from '@/data/provinces';
@@ -23,6 +23,38 @@ const AI_TRIGGER_INTERVAL = 3;
 
 const difficultyOrder: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
 
+type Difficulty = 'easy' | 'medium' | 'hard';
+
+const difficultyInfo = {
+  easy: {
+    label: '简单',
+    description: '有手就能过的题目',
+    color: 'from-green-400 to-emerald-500',
+    bgColor: 'bg-green-50',
+    borderColor: 'border-green-200',
+    textColor: 'text-green-700',
+    examples: '火灾逃生、洪水避险、台风防护等基础常识',
+  },
+  medium: {
+    label: '中等',
+    description: '需要思考的常识性问题',
+    color: 'from-yellow-400 to-orange-500',
+    bgColor: 'bg-yellow-50',
+    borderColor: 'border-yellow-200',
+    textColor: 'text-yellow-700',
+    examples: '泥石流预兆、灭火器使用、暴雨行车安全等',
+  },
+  hard: {
+    label: '困难',
+    description: '理论性、知识性题目',
+    color: 'from-red-400 to-rose-500',
+    bgColor: 'bg-red-50',
+    borderColor: 'border-red-200',
+    textColor: 'text-red-700',
+    examples: '地震纵波横波、法拉第笼效应、山体滑坡力学等',
+  },
+};
+
 function shuffleArray<T>(arr: T[]): T[] {
   const result = [...arr];
   for (let i = result.length - 1; i > 0; i--) {
@@ -32,17 +64,23 @@ function shuffleArray<T>(arr: T[]): T[] {
   return result;
 }
 
-function selectQuestions(province: string): Question[] {
+function selectQuestions(province: string, difficulty?: Difficulty): Question[] {
   const provinceData = provinces.find((p) => p.name === province);
   const relatedDisasters = provinceData?.commonDisasters || [];
 
-  const provinceMatched = questionBank.filter(
+  let pool = questionBank;
+
+  if (difficulty) {
+    pool = questionBank.filter((q) => q.difficulty === difficulty);
+  }
+
+  const provinceMatched = pool.filter(
     (q) =>
       q.tags.provinces.includes(province) ||
       q.tags.disasterTypes.some((d) => relatedDisasters.includes(d)),
   );
 
-  const others = questionBank.filter((q) => !provinceMatched.includes(q));
+  const others = pool.filter((q) => !provinceMatched.includes(q));
 
   let selected: Question[] = [];
 
@@ -65,6 +103,81 @@ function selectQuestions(province: string): Question[] {
 
 type ElephantMood = 'happy' | 'sad' | 'thinking' | 'excited' | 'worried' | 'neutral';
 
+function DifficultySelection({
+  onSelect,
+}: {
+  onSelect: (difficulty: Difficulty) => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-2xl mx-auto"
+    >
+      <div className="flex flex-col items-center gap-2 mb-8">
+        <ElephantMascot
+          mood="thinking"
+          size="lg"
+          message="选择难度，开始挑战吧！"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {(Object.keys(difficultyInfo) as Difficulty[]).map((diff) => {
+          const info = difficultyInfo[diff];
+          return (
+            <motion.button
+              key={diff}
+              whileHover={{ scale: 1.03, y: -4 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => onSelect(diff)}
+              className={`relative overflow-hidden rounded-2xl border-2 ${info.borderColor} ${info.bgColor} p-6 text-left transition-all hover:shadow-lg`}
+            >
+              <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl ${info.color} opacity-20 rounded-bl-full`} />
+
+              <div className={`inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${info.color} text-white font-bold text-lg mb-4`}>
+                {diff === 'easy' ? '✓' : diff === 'medium' ? '!' : '⚡'}
+              </div>
+
+              <h3 className={`font-title text-xl ${info.textColor} mb-2`}>
+                {info.label}
+              </h3>
+
+              <p className="text-sm text-dark-text/60 mb-4">
+                {info.description}
+              </p>
+
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-dark-text/50">典型题目：</p>
+                <p className="text-xs text-dark-text/40">
+                  {info.examples}
+                </p>
+              </div>
+
+              <div className={`mt-4 flex items-center gap-2 text-sm ${info.textColor}`}>
+                <ChevronRight size={16} />
+                <span>开始挑战</span>
+              </div>
+            </motion.button>
+          );
+        })}
+      </div>
+
+      <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-200">
+        <div className="flex items-start gap-3">
+          <Brain size={20} className="text-blue-500 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-blue-700">温馨提示</p>
+            <p className="text-xs text-blue-600/80 mt-1">
+              不同难度会影响题目类型分布：简单题目侧重基础逃生技能，中等题目涉及常识判断，困难题目包含更多专业知识点。
+            </p>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function Quiz() {
   const { province } = useAppStore();
   const { score, setScore, totalAnswered, setTotalAnswered, showExplanation, setShowExplanation, userAnswer, setUserAnswer, resetQuiz } = useQuizStore();
@@ -81,15 +194,19 @@ export default function Quiz() {
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<'correct' | 'wrong' | 'encourage' | null>(null);
   const [consecutiveCorrect, setConsecutiveCorrect] = useState(0);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
+  const [isSelectingDifficulty, setIsSelectingDifficulty] = useState(true);
 
   const aiQuestionInserted = useRef(false);
   const answeredKnowledgePoints = useRef<string[]>([]);
 
   const currentQuestion = questions[currentIndex] || null;
 
-  const initQuiz = useCallback(() => {
+  const startQuiz = useCallback((difficulty: Difficulty) => {
+    setSelectedDifficulty(difficulty);
+    setIsSelectingDifficulty(false);
     resetQuiz();
-    const selected = selectQuestions(province);
+    const selected = selectQuestions(province, difficulty);
     setQuestions(selected);
     setCurrentIndex(0);
     setIsFinished(false);
@@ -105,6 +222,13 @@ export default function Quiz() {
     aiQuestionInserted.current = false;
     answeredKnowledgePoints.current = [];
   }, [province, resetQuiz]);
+
+  const initQuiz = useCallback(() => {
+    setIsSelectingDifficulty(true);
+    setSelectedDifficulty(null);
+    setQuestions([]);
+    resetQuiz();
+  }, [resetQuiz]);
 
   useEffect(() => {
     initQuiz();
@@ -159,7 +283,7 @@ export default function Quiz() {
               disasterTypes: [],
               knowledgePoints: [knowledgePoint],
             },
-            difficulty: 'medium',
+            difficulty: selectedDifficulty || 'medium',
           };
 
           setQuestions((prev) => {
@@ -176,7 +300,7 @@ export default function Quiz() {
     } finally {
       setAiQuestionLoading(false);
     }
-  }, [province, currentIndex]);
+  }, [province, currentIndex, selectedDifficulty]);
 
   const handleAnswer = useCallback(
     async (answerIndex: number) => {
@@ -287,8 +411,30 @@ export default function Quiz() {
   }, [currentIndex, questions.length, score, setUserAnswer, setShowExplanation]);
 
   const handleRestart = useCallback(() => {
-    initQuiz();
-  }, [initQuiz]);
+    if (selectedDifficulty) {
+      startQuiz(selectedDifficulty);
+    }
+  }, [selectedDifficulty, startQuiz]);
+
+  // 难度选择界面
+  if (isSelectingDifficulty) {
+    return (
+      <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="font-title text-2xl text-dark-text">安全问答</h1>
+          <Link
+            to="/modules"
+            className="flex items-center gap-2 text-dark-text/60 hover:text-dark-text transition-colors"
+          >
+            <ChevronRight size={20} className="rotate-180" />
+            返回
+          </Link>
+        </div>
+
+        <DifficultySelection onSelect={startQuiz} />
+      </div>
+    );
+  }
 
   if (questions.length === 0) {
     return (
@@ -318,7 +464,10 @@ export default function Quiz() {
           transition={{ delay: 0.3 }}
           className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 w-full text-center"
         >
-          <h2 className="font-title text-2xl text-brand-orange mb-6">答题完成！</h2>
+          <h2 className="font-title text-2xl text-brand-orange mb-2">答题完成！</h2>
+          <p className="text-sm text-dark-text/50 mb-6">
+            {selectedDifficulty && difficultyInfo[selectedDifficulty].label}难度 · {questions.length}题
+          </p>
 
           <div className="flex justify-center gap-8 mb-6">
             <div className="flex flex-col items-center">
@@ -354,9 +503,16 @@ export default function Quiz() {
               <RotateCcw size={18} />
               再来一轮
             </button>
+            <button
+              onClick={() => setIsSelectingDifficulty(true)}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gray-100 text-dark-text/70 font-medium hover:bg-gray-200 transition-colors"
+            >
+              <Sparkles size={18} />
+              切换难度
+            </button>
             <Link
               to="/"
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gray-100 text-dark-text/70 font-medium hover:bg-gray-200 transition-colors no-underline"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gray-50 text-dark-text/50 font-medium hover:bg-gray-100 transition-colors no-underline"
             >
               <Home size={18} />
               返回首页
@@ -371,6 +527,26 @@ export default function Quiz() {
     <div className="flex flex-col lg:flex-row gap-6 max-w-5xl mx-auto">
       {/* 左侧/上方：题目区域 */}
       <div className="flex-1 flex flex-col gap-4">
+        {/* 顶部导航 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/modules"
+              className="flex items-center gap-1 text-dark-text/60 hover:text-dark-text transition-colors"
+            >
+              <ChevronRight size={20} className="rotate-180" />
+              <span className="text-sm">返回</span>
+            </Link>
+            <span className="text-dark-text/30">|</span>
+            <h1 className="font-title text-lg text-dark-text">安全问答</h1>
+          </div>
+          {selectedDifficulty && (
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r ${difficultyInfo[selectedDifficulty].color} text-white`}>
+              {difficultyInfo[selectedDifficulty].label}
+            </span>
+          )}
+        </div>
+
         {/* 进度条 */}
         <div className="flex items-center gap-3">
           <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
@@ -400,7 +576,13 @@ export default function Quiz() {
               <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-brand-orange text-white text-sm font-bold">
                 {currentIndex + 1}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-dark-text/50">
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                currentQuestion.difficulty === 'easy'
+                  ? 'bg-green-100 text-green-700'
+                  : currentQuestion.difficulty === 'medium'
+                    ? 'bg-yellow-100 text-yellow-700'
+                    : 'bg-red-100 text-red-700'
+              }`}>
                 {currentQuestion.difficulty === 'easy'
                   ? '简单'
                   : currentQuestion.difficulty === 'medium'
@@ -534,106 +716,123 @@ export default function Quiz() {
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5">
-                {isAnswered && userAnswer !== null && userAnswer !== currentQuestion.answer && currentQuestion.wrongExplanations?.[userAnswer] && (
-                  <>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-lg">❌</span>
-                      <span className="font-medium text-danger-red">为什么不能选这个答案？</span>
-                    </div>
-                    <p className="text-sm text-danger-red/80 leading-relaxed mb-4 bg-danger-red/5 p-3 rounded-lg border border-danger-red/20">
-                      {currentQuestion.wrongExplanations[userAnswer]}
-                    </p>
-                  </>
-                )}
-
+              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl border border-blue-100 p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <BookOpen size={16} className="text-brand-orange" />
-                  <span className="font-medium text-dark-text">正确答案解析</span>
+                  <BookOpen size={18} className="text-blue-500" />
+                  <span className="font-medium text-blue-700">答案解析</span>
                 </div>
-                <p className="text-sm text-dark-text/70 leading-relaxed mb-3">
+                <p className="text-sm text-dark-text/80 leading-relaxed mb-4">
                   {currentQuestion.explanation}
                 </p>
 
-                {/* AI扩展解析 */}
-                {aiLoading && (
-                  <div className="border-t border-gray-100 pt-3 mt-3">
-                    <AILoading text="小象正在补充知识..." />
+                {/* 错误答案解析 */}
+                {userAnswer !== null && userAnswer !== currentQuestion.answer && currentQuestion.wrongExplanations && (
+                  <div className="mb-4 p-4 bg-red-50 rounded-xl border border-red-100">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Shield size={16} className="text-red-500" />
+                      <span className="font-medium text-red-700">为什么不能选这个答案？</span>
+                    </div>
+                    <p className="text-sm text-red-600/80 leading-relaxed">
+                      {currentQuestion.wrongExplanations[userAnswer]}
+                    </p>
                   </div>
                 )}
 
-                {aiExplanation && !aiLoading && (
+                {/* AI 扩展解析 */}
+                {aiLoading ? (
+                  <AILoading />
+                ) : aiExplanation ? (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="border-t border-gray-100 pt-3 mt-3"
+                    className="p-4 bg-white/60 rounded-xl border border-blue-200/50"
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <Sparkles size={14} className="text-brand-orange" />
-                      <span className="text-sm font-medium text-brand-orange">小象补充知识</span>
+                      <Sparkles size={16} className="text-blue-500" />
+                      <span className="text-sm font-medium text-blue-600">扩展知识</span>
                     </div>
                     <p className="text-sm text-dark-text/70 leading-relaxed">{aiExplanation}</p>
                   </motion.div>
-                )}
+                ) : null}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* 下一题按钮 */}
-        <AnimatePresence>
-          {isAnswered && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
+        {isAnswered && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-end"
+          >
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleNext}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-orange text-white font-medium hover:bg-brand-orange/90 transition-colors"
             >
-              <button
-                onClick={handleNext}
-                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-brand-orange text-white font-medium hover:bg-brand-orange/90 transition-colors"
-              >
-                {currentIndex + 1 >= questions.length ? '查看成绩' : '下一题'}
-                <ChevronRight size={18} />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {currentIndex + 1 >= questions.length ? '查看结果' : '下一题'}
+              <ChevronRight size={18} />
+            </motion.button>
+          </motion.div>
+        )}
       </div>
 
-      {/* 右侧/下方：小象区域 */}
-      <div className="lg:w-64 flex flex-col items-center gap-4 lg:sticky lg:top-20 lg:self-start">
-        <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 flex flex-col items-center gap-3 w-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={elephantMood}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ElephantMascot mood={elephantMood} size="lg" message={elephantMessage} />
-            </motion.div>
+      {/* 右侧：状态栏 */}
+      <div className="lg:w-72">
+        <div className="sticky top-4 space-y-4">
+          {/* 小象 */}
+          <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-4">
+            <ElephantMascot mood={elephantMood} size="md" message={elephantMessage} />
+          </div>
+
+          {/* AI出题中 */}
+          <AnimatePresence>
+            {aiQuestionLoading && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-100 p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center">
+                    <Sparkles size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-purple-700">小象出题中</p>
+                    <p className="text-xs text-purple-500">正在生成新题目...</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </AnimatePresence>
 
-          {aiQuestionLoading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center gap-2 text-sm text-brand-orange/70"
-            >
-              <Sparkles size={14} className="animate-pulse" />
-              <span>正在生成新题目...</span>
-            </motion.div>
-          )}
-
-          <div className="w-full border-t border-gray-100 pt-3 mt-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-dark-text/50">当前得分</span>
-              <span className="font-bold text-brand-orange">{score}</span>
-            </div>
-            <div className="flex justify-between text-sm mt-1">
-              <span className="text-dark-text/50">已答题数</span>
-              <span className="font-medium text-dark-text">{totalAnswered}</span>
+          {/* 统计信息 */}
+          <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-4">
+            <h3 className="font-medium text-dark-text mb-3 text-sm">本次答题</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-dark-text/60 text-sm">正确率</span>
+                <span className="font-medium text-dark-text">
+                  {questions.length > 0 ? Math.round((score / (currentIndex + (isAnswered ? 1 : 0))) * 100) : 0}%
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-dark-text/60 text-sm">已答</span>
+                <span className="font-medium text-dark-text">{currentIndex + (isAnswered ? 1 : 0)} / {questions.length}</span>
+              </div>
+              {selectedDifficulty && (
+                <div className="pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r ${difficultyInfo[selectedDifficulty].color} text-white`}>
+                      {difficultyInfo[selectedDifficulty].label}
+                    </span>
+                    <span className="text-xs text-dark-text/40">难度</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
