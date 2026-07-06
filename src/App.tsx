@@ -12,6 +12,8 @@ import HomePlan from '@/pages/homeplan/HomePlan';
 import EscapeMap from '@/pages/homeplan/EscapeMap';
 import MedicalCard from '@/pages/homeplan/MedicalCard';
 import DisasterRecognition from '@/pages/DisasterRecognition';
+import DisasterGameSelect from '@/pages/games/DisasterGameSelect';
+import DisasterGame from '@/pages/games/DisasterGame';
 
 export default function App() {
   return (
@@ -30,6 +32,8 @@ export default function App() {
           <Route path="/home-plan/escape-map" element={<EscapeMap />} />
           <Route path="/home-plan/medical-card" element={<MedicalCard />} />
           <Route path="/disaster-recognition" element={<DisasterRecognition />} />
+          <Route path="/games" element={<DisasterGameSelect />} />
+          <Route path="/games/:id" element={<DisasterGame />} />
         </Route>
       </Routes>
     </Router>

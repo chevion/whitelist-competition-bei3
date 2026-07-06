@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Footprints, BookOpen, Package, MapPin, Heart, MapPinned, Phone, Siren, Lightbulb } from 'lucide-react';
+import { Footprints, BookOpen, Package, MapPin, Heart, MapPinned, Phone, Siren, Lightbulb, Gamepad2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ElephantMascot from '@/components/ElephantMascot';
 import EmergencyCall from '@/components/EmergencyCall';
@@ -35,6 +35,13 @@ const modules = [
     icon: MapPin,
     path: '/home-plan',
     gradient: 'from-blue-400 to-indigo-400',
+  },
+  {
+    title: '灾害游戏',
+    desc: '趣味灾害逃生小游戏，边玩边学',
+    icon: Gamepad2,
+    path: '/games',
+    gradient: 'from-purple-400 to-pink-400',
   },
   {
     title: '医疗急救卡',
