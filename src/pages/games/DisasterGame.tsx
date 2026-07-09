@@ -28,7 +28,7 @@ const gameConfigs: Record<string, GameConfig> = {
     speed: 2.5,
     gravity: 0.55,
     jumpForce: -16,
-    chaseSpeed: 0.5,
+    chaseSpeed: 2.5,
   },
   fire: {
     id: 'fire',
@@ -40,7 +40,7 @@ const gameConfigs: Record<string, GameConfig> = {
     speed: 2.8,
     gravity: 0.55,
     jumpForce: -16,
-    chaseSpeed: 0.8,
+    chaseSpeed: 2.8,
   },
   flood: {
     id: 'flood',
@@ -52,7 +52,7 @@ const gameConfigs: Record<string, GameConfig> = {
     speed: 2.0,
     gravity: 0.5,
     jumpForce: -15,
-    chaseSpeed: 1.2,
+    chaseSpeed: 2.0,
   },
   typhoon: {
     id: 'typhoon',
@@ -64,7 +64,7 @@ const gameConfigs: Record<string, GameConfig> = {
     speed: 3.0,
     gravity: 0.6,
     jumpForce: -17,
-    chaseSpeed: 0.6,
+    chaseSpeed: 3.0,
   },
 };
 
@@ -92,6 +92,8 @@ interface ChasingWave {
   height: number;
   amplitude: number;
   phase: number;
+  isDashing: boolean;
+  dashTimer: number;
 }
 
 interface Platform {
@@ -122,19 +124,31 @@ export default function DisasterGame() {
   const [gameState, setGameState] = useState<'start' | 'playing' | 'won' | 'lost'>('start');
   const [score, setScore] = useState(0);
   const [distance, setDistance] = useState(0);
+  const [skillCooldown, setSkillCooldown] = useState(0);
+  const [skillReady, setSkillReady] = useState(true);
   const gameLoopRef = useRef<number | null>(null);
   const gameOverRef = useRef(false);
   const frameCountRef = useRef(0);
   const gameConfig = gameConfigs[id || 'mudslide'];
 
   const birdRef = useRef({
-    x: 100,
+    x: 80,
     y: 200,
     width: 35,
     height: 35,
     velocityY: 0,
     isJumping: false,
     jumpCount: 0,
+    isDashing: false,
+    isInvincible: false,
+  });
+
+  const skillRef = useRef({
+    dashDistance: 0,
+    maxDashDistance: 0,
+    lastUseTime: -20000,
+    cooldown: 20000,
+    isReady: true,
   });
 
   const obstaclesRef = useRef<Obstacle[]>([]);
@@ -215,49 +229,65 @@ export default function DisasterGame() {
   const drawBird = useCallback(
     (ctx: CanvasRenderingContext2D) => {
       const bird = birdRef.current;
-      const wingFlap = Math.sin(frameCountRef.current * 0.3) * 5;
+      const cx = bird.x + bird.width / 2;
+      const cy = bird.y + bird.height / 2;
+      const size = bird.width / 1.5;
+      const twinkle = Math.sin(frameCountRef.current * 0.15) * 0.15 + 0.9;
+      const glowIntensity = Math.sin(frameCountRef.current * 0.1) * 5 + 15;
 
-      ctx.fillStyle = '#FFD700';
-      ctx.beginPath();
-      ctx.arc(bird.x + bird.width / 2, bird.y + bird.height / 2, bird.width / 2, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(twinkle, twinkle);
 
-      ctx.fillStyle = '#FF6347';
-      ctx.beginPath();
-      ctx.arc(bird.x + bird.width / 2 - 7, bird.y + bird.height / 2 - 4, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(bird.x + bird.width / 2 + 7, bird.y + bird.height / 2 - 4, 5, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+      ctx.shadowBlur = glowIntensity;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
 
-      ctx.fillStyle = '#000';
+      ctx.fillStyle = '#ADD8E6';
       ctx.beginPath();
-      ctx.arc(bird.x + bird.width / 2 - 7, bird.y + bird.height / 2 - 4, 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(bird.x + bird.width / 2 + 7, bird.y + bird.height / 2 - 4, 2, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#FFA500';
-      ctx.beginPath();
-      ctx.ellipse(bird.x + bird.width / 2, bird.y + bird.height / 2 + 6, 5, 4, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#FFD700';
-      ctx.beginPath();
-      ctx.moveTo(bird.x - 8, bird.y + bird.height / 2);
-      ctx.lineTo(bird.x - 18, bird.y + bird.height / 2 - wingFlap);
-      ctx.lineTo(bird.x - 18, bird.y + bird.height / 2 + wingFlap);
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
+        const x = Math.cos(angle) * size;
+        const y = Math.sin(angle) * size;
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+        const innerAngle = angle + Math.PI / 5;
+        const innerX = Math.cos(innerAngle) * size * 0.4;
+        const innerY = Math.sin(innerAngle) * size * 0.4;
+        ctx.lineTo(innerX, innerY);
+      }
       ctx.closePath();
       ctx.fill();
 
-      ctx.fillStyle = '#FFD700';
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#E0F4FF';
       ctx.beginPath();
-      ctx.moveTo(bird.x + bird.width + 8, bird.y + bird.height / 2);
-      ctx.lineTo(bird.x + bird.width + 18, bird.y + bird.height / 2 - wingFlap);
-      ctx.lineTo(bird.x + bird.width + 18, bird.y + bird.height / 2 + wingFlap);
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
+        const x = Math.cos(angle) * size * 0.5;
+        const y = Math.sin(angle) * size * 0.5;
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+        const innerAngle = angle + Math.PI / 5;
+        const innerX = Math.cos(innerAngle) * size * 0.2;
+        const innerY = Math.sin(innerAngle) * size * 0.2;
+        ctx.lineTo(innerX, innerY);
+      }
       ctx.closePath();
       ctx.fill();
+
+      ctx.restore();
     },
     [],
   );
@@ -396,74 +426,86 @@ export default function DisasterGame() {
       const wave = chasingWaveRef.current;
 
       if (gameConfig.hazardType === 'water') {
-        const gradient = ctx.createLinearGradient(wave.x, 0, wave.x - 100, 0);
-        gradient.addColorStop(0, 'rgba(0, 206, 209, 0.8)');
-        gradient.addColorStop(0.5, 'rgba(30, 144, 255, 0.5)');
-        gradient.addColorStop(1, 'rgba(30, 144, 255, 0)');
+        for (let waveIdx = 0; waveIdx < 5; waveIdx++) {
+          const offsetX = wave.x + waveIdx * 200;
+          const gradient = ctx.createLinearGradient(offsetX, 0, offsetX + 100, 0);
+          gradient.addColorStop(0, 'rgba(30, 144, 255, 0)');
+          gradient.addColorStop(0.5, 'rgba(30, 144, 255, 0.5)');
+          gradient.addColorStop(1, 'rgba(0, 206, 209, 0.8)');
 
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.moveTo(wave.x, canvasHeightRef.current);
-        for (let y = canvasHeightRef.current; y > canvasHeightRef.current - wave.height; y -= 10) {
-          const waveX = wave.x + Math.sin((y + wave.phase) * 0.05) * wave.amplitude;
-          ctx.lineTo(waveX, y);
-        }
-        ctx.lineTo(wave.x - wave.amplitude - 50, canvasHeightRef.current);
-        ctx.closePath();
-        ctx.fill();
-
-        for (let i = 0; i < 10; i++) {
-          const bubbleX = wave.x - 20 - Math.random() * 80;
-          const bubbleY = canvasHeightRef.current - 20 - Math.random() * (wave.height - 40);
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.fillStyle = gradient;
           ctx.beginPath();
-          ctx.arc(bubbleX, bubbleY, 3 + Math.random() * 4, 0, Math.PI * 2);
+          ctx.moveTo(offsetX, canvasHeightRef.current);
+          for (let y = canvasHeightRef.current; y > canvasHeightRef.current - wave.height; y -= 10) {
+            const waveX = offsetX + Math.sin((y + wave.phase + waveIdx * 2) * 0.05) * wave.amplitude;
+            ctx.lineTo(waveX, y);
+          }
+          ctx.lineTo(offsetX + wave.amplitude + 50, canvasHeightRef.current);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        for (let i = 0; i < 15; i++) {
+          const bubbleX = wave.x + Math.random() * 800;
+          const bubbleY = canvasHeightRef.current - 20 - Math.random() * (wave.height - 40);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+          ctx.beginPath();
+          ctx.arc(bubbleX, bubbleY, 2 + Math.random() * 3, 0, Math.PI * 2);
           ctx.fill();
         }
       } else if (gameConfig.hazardType === 'wind') {
-        const gradient = ctx.createLinearGradient(wave.x, 0, wave.x - 150, 0);
-        gradient.addColorStop(0, 'rgba(147, 112, 219, 0.6)');
-        gradient.addColorStop(0.5, 'rgba(100, 100, 150, 0.3)');
-        gradient.addColorStop(1, 'rgba(100, 100, 150, 0)');
+        for (let waveIdx = 0; waveIdx < 3; waveIdx++) {
+          const offsetX = wave.x + waveIdx * 250;
+          const gradient = ctx.createLinearGradient(offsetX, 0, offsetX + 150, 0);
+          gradient.addColorStop(0, 'rgba(100, 100, 150, 0)');
+          gradient.addColorStop(0.5, 'rgba(100, 100, 150, 0.3)');
+          gradient.addColorStop(1, 'rgba(147, 112, 219, 0.6)');
 
-        ctx.fillStyle = gradient;
-        ctx.fillRect(wave.x - 150, 0, 150, canvasHeightRef.current);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(offsetX, 0, 150, canvasHeightRef.current);
+        }
 
-        for (let i = 0; i < 15; i++) {
-          const debrisX = wave.x - Math.random() * 150;
+        for (let i = 0; i < 20; i++) {
+          const debrisX = wave.x + Math.random() * 600;
           const debrisY = Math.random() * canvasHeightRef.current;
-          const debrisSize = 3 + Math.random() * 8;
+          const debrisSize = 2 + Math.random() * 6;
           
-          ctx.fillStyle = Math.random() > 0.5 ? '#888' : '#666';
+          ctx.fillStyle = Math.random() > 0.5 ? '#999' : '#777';
           ctx.fillRect(debrisX, debrisY, debrisSize, debrisSize);
         }
       } else if (gameConfig.hazardType === 'mud') {
-        const gradient = ctx.createLinearGradient(wave.x, 0, wave.x - 120, 0);
-        gradient.addColorStop(0, 'rgba(205, 133, 63, 0.7)');
-        gradient.addColorStop(0.5, 'rgba(139, 69, 19, 0.5)');
-        gradient.addColorStop(1, 'rgba(139, 69, 19, 0)');
+        for (let waveIdx = 0; waveIdx < 4; waveIdx++) {
+          const offsetX = wave.x + waveIdx * 180;
+          const gradient = ctx.createLinearGradient(offsetX, 0, offsetX + 120, 0);
+          gradient.addColorStop(0, 'rgba(139, 69, 19, 0)');
+          gradient.addColorStop(0.5, 'rgba(139, 69, 19, 0.5)');
+          gradient.addColorStop(1, 'rgba(205, 133, 63, 0.7)');
 
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.moveTo(wave.x, canvasHeightRef.current);
-        for (let y = canvasHeightRef.current; y > canvasHeightRef.current - wave.height; y -= 15) {
-          const waveX = wave.x + Math.sin((y + wave.phase) * 0.03) * wave.amplitude;
-          ctx.lineTo(waveX, y);
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.moveTo(offsetX, canvasHeightRef.current);
+          for (let y = canvasHeightRef.current; y > canvasHeightRef.current - wave.height; y -= 15) {
+            const waveX = offsetX + Math.sin((y + wave.phase + waveIdx * 3) * 0.03) * wave.amplitude;
+            ctx.lineTo(waveX, y);
+          }
+          ctx.lineTo(offsetX + wave.amplitude + 80, canvasHeightRef.current);
+          ctx.closePath();
+          ctx.fill();
         }
-        ctx.lineTo(wave.x - wave.amplitude - 80, canvasHeightRef.current);
-        ctx.closePath();
-        ctx.fill();
       } else if (gameConfig.hazardType === 'fire') {
-        const gradient = ctx.createLinearGradient(wave.x, 0, wave.x - 100, 0);
-        gradient.addColorStop(0, 'rgba(255, 69, 0, 0.5)');
-        gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.3)');
-        gradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+        for (let waveIdx = 0; waveIdx < 3; waveIdx++) {
+          const offsetX = wave.x + waveIdx * 220;
+          const gradient = ctx.createLinearGradient(offsetX, 0, offsetX + 100, 0);
+          gradient.addColorStop(0, 'rgba(255, 100, 0, 0)');
+          gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.3)');
+          gradient.addColorStop(1, 'rgba(255, 69, 0, 0.5)');
 
-        ctx.fillStyle = gradient;
-        ctx.fillRect(wave.x - 100, 0, 100, canvasHeightRef.current);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(offsetX, 0, 100, canvasHeightRef.current);
+        }
 
-        for (let i = 0; i < 8; i++) {
-          const emberX = wave.x - Math.random() * 100;
+        for (let i = 0; i < 12; i++) {
+          const emberX = wave.x + Math.random() * 500;
           const emberY = Math.random() * canvasHeightRef.current;
           const emberSize = 2 + Math.random() * 4;
           
@@ -484,13 +526,23 @@ export default function DisasterGame() {
 
   const drawPlatform = useCallback(
     (ctx: CanvasRenderingContext2D, platform: Platform) => {
-      ctx.fillStyle = '#8B4513';
+      ctx.fillStyle = '#228B22';
       ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-      ctx.fillStyle = '#A0522D';
+      ctx.fillStyle = '#32CD32';
       ctx.fillRect(platform.x, platform.y, platform.width, platform.height / 3);
 
-      ctx.fillStyle = '#654321';
+      ctx.fillStyle = '#006400';
       ctx.fillRect(platform.x + 5, platform.y + platform.height - 3, platform.width - 10, 3);
+
+      ctx.fillStyle = '#90EE90';
+      for (let i = 0; i < platform.width; i += 15) {
+        ctx.beginPath();
+        ctx.moveTo(platform.x + i + 5, platform.y + platform.height);
+        ctx.lineTo(platform.x + i + 8, platform.y + platform.height + 8);
+        ctx.lineTo(platform.x + i + 12, platform.y + platform.height);
+        ctx.closePath();
+        ctx.fill();
+      }
     },
     [],
   );
@@ -616,8 +668,39 @@ export default function DisasterGame() {
         bird.velocityY = gameConfig.jumpForce;
         bird.isJumping = true;
         bird.jumpCount++;
-        bird.x += 30;
       }
+    }
+
+    const skill = skillRef.current;
+    const now = Date.now();
+    
+    if (keysRef.current.has('Enter') && skill.isReady && !bird.isDashing) {
+      bird.isDashing = true;
+      bird.isInvincible = true;
+      skill.dashDistance = 0;
+      skill.maxDashDistance = canvasWidthRef.current * 2;
+      skill.lastUseTime = now;
+      skill.isReady = false;
+    }
+
+    if (bird.isDashing) {
+      const dashSpeed = 30;
+      bird.x += dashSpeed;
+      skill.dashDistance += dashSpeed;
+      
+      if (skill.dashDistance >= skill.maxDashDistance) {
+        bird.isDashing = false;
+        bird.isInvincible = false;
+      }
+    }
+
+    if (!skill.isReady && now - skill.lastUseTime >= skill.cooldown) {
+      skill.isReady = true;
+      setSkillReady(true);
+      setSkillCooldown(0);
+    } else if (!skill.isReady) {
+      const remaining = Math.ceil((skill.cooldown - (now - skill.lastUseTime)) / 1000);
+      setSkillCooldown(remaining);
     }
 
     bird.velocityY += gameConfig.gravity;
@@ -633,8 +716,8 @@ export default function DisasterGame() {
     platformsRef.current.forEach((platform) => {
       platform.x -= gameConfig.speed;
       if (
-        !bird.isJumping &&
-        bird.y + bird.height <= platform.y + 10 &&
+        bird.velocityY >= 0 &&
+        bird.y + bird.height <= platform.y + 15 &&
         bird.y + bird.height >= platform.y - bird.velocityY &&
         bird.x + bird.width > platform.x &&
         bird.x < platform.x + platform.width
@@ -642,6 +725,7 @@ export default function DisasterGame() {
         bird.y = platform.y - bird.height;
         bird.velocityY = 0;
         bird.isJumping = false;
+        bird.jumpCount = 0;
       }
     });
 
@@ -665,27 +749,27 @@ export default function DisasterGame() {
 
     raindropsRef.current = raindropsRef.current.filter((r) => r.y < canvasHeightRef.current);
 
-    const now = Date.now();
-
-    if (now - lastObstacleTimeRef.current > 2000 + Math.random() * 1500) {
+    const obstacleNow = Date.now();
+    if (obstacleNow - lastObstacleTimeRef.current > 2000 + Math.random() * 1500) {
       spawnObstacle();
-      lastObstacleTimeRef.current = now;
+      lastObstacleTimeRef.current = obstacleNow;
     }
 
     if (gameConfig.hazardType === 'mud') {
-      if (now - lastRockTimeRef.current > 800 + Math.random() * 1000) {
+      const rockNow = Date.now();
+      if (rockNow - lastRockTimeRef.current > 800 + Math.random() * 1000) {
         spawnFallingRock();
-        lastRockTimeRef.current = now;
+        lastRockTimeRef.current = rockNow;
       }
     }
 
-    if (Math.random() < 0.003) {
+    if (Math.random() < 0.01) {
       spawnPlatform();
     }
 
     obstaclesRef.current.forEach((obstacle) => {
       obstacle.x -= gameConfig.speed;
-      if (checkCollision(bird, obstacle)) {
+      if (!bird.isInvincible && checkCollision(bird, obstacle)) {
         gameOverRef.current = true;
         setGameState('lost');
         return;
@@ -711,7 +795,7 @@ export default function DisasterGame() {
         height: rock.height,
       };
 
-      if (checkCollision(bird, rockRect)) {
+      if (!bird.isInvincible && checkCollision(bird, rockRect)) {
         gameOverRef.current = true;
         setGameState('lost');
         return;
@@ -721,14 +805,12 @@ export default function DisasterGame() {
     fallingRocksRef.current = fallingRocksRef.current.filter((r) => r.y < canvasHeightRef.current + 50);
 
     if (chasingWaveRef.current) {
-      chasingWaveRef.current.x -= gameConfig.chaseSpeed;
-      chasingWaveRef.current.phase += 0.1;
-
-      const waveLeftX = chasingWaveRef.current.x - 150;
-      if (waveLeftX <= bird.x + bird.width) {
-        gameOverRef.current = true;
-        setGameState('lost');
-        return;
+      const wave = chasingWaveRef.current;
+      wave.x += gameConfig.chaseSpeed;
+      wave.phase += 0.1;
+      
+      if (wave.x > canvasWidthRef.current + 200) {
+        wave.x = -1000;
       }
     }
 
@@ -757,13 +839,15 @@ export default function DisasterGame() {
     gameOverRef.current = false;
     frameCountRef.current = 0;
     birdRef.current = {
-      x: 100,
+      x: 80,
       y: canvasHeightRef.current - 150,
       width: 35,
       height: 35,
       velocityY: 0,
       isJumping: false,
       jumpCount: 0,
+      isDashing: false,
+      isInvincible: false,
     };
     obstaclesRef.current = [];
     fallingRocksRef.current = [];
@@ -773,12 +857,24 @@ export default function DisasterGame() {
     scoreRef.current = 0;
     lastObstacleTimeRef.current = 0;
     lastRockTimeRef.current = 0;
+    
+    skillRef.current = {
+      dashDistance: 0,
+      maxDashDistance: 0,
+      lastUseTime: -20000,
+      cooldown: 20000,
+      isReady: true,
+    };
+    setSkillReady(true);
+    setSkillCooldown(0);
 
     chasingWaveRef.current = {
-      x: canvasWidthRef.current + 500,
-      height: 150 + Math.random() * 100,
+      x: -200,
+      height: 100 + Math.random() * 50,
       amplitude: 30,
       phase: 0,
+      isDashing: false,
+      dashTimer: 0,
     };
 
     generateBuildings();
@@ -859,14 +955,27 @@ export default function DisasterGame() {
         bird.velocityY = gameConfig.jumpForce;
         bird.isJumping = true;
         bird.jumpCount++;
-        bird.x += 30;
       }
     }
   }, [gameState, gameConfig.jumpForce]);
 
-  const handleCanvasClick = useCallback(() => {
-    handleJump();
-  }, [handleJump]);
+  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+    if (e.button === 2) {
+      e.preventDefault();
+      const skill = skillRef.current;
+      const bird = birdRef.current;
+      if (skill.isReady && !bird.isDashing && gameState === 'playing') {
+        bird.isDashing = true;
+        bird.isInvincible = true;
+        skill.dashDistance = 0;
+        skill.maxDashDistance = canvasWidthRef.current * 2;
+        skill.lastUseTime = Date.now();
+        skill.isReady = false;
+      }
+    } else {
+      handleJump();
+    }
+  }, [handleJump, gameState]);
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)] p-2">
@@ -886,6 +995,9 @@ export default function DisasterGame() {
           <div className="flex items-center gap-2">
             <span className="text-sm text-dark-text/60">距离:</span>
             <span className="font-bold text-dark-text">{distance}m</span>
+          </div>
+          <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full ${skillReady ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+            <span className="text-sm font-medium">{skillReady ? '冲刺就绪' : `${skillCooldown}s`}</span>
           </div>
         </div>
       </div>
