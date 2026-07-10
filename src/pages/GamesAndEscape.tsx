@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Gamepad2, Footprints, Play } from 'lucide-react';
+import { Gamepad2, Footprints, Play, Sparkles } from 'lucide-react';
 import ElephantMascot from '@/components/ElephantMascot';
 
 export default function GamesAndEscape() {
@@ -22,7 +22,7 @@ export default function GamesAndEscape() {
         <ElephantMascot mood="excited" size="lg" message="选择一个开始挑战吧！" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto w-full px-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto w-full px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -99,6 +99,37 @@ export default function GamesAndEscape() {
               </div>
             </div>
           </Link>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+          whileHover={{ scale: 1.02, y: -4 }}
+        >
+          <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden h-full cursor-not-allowed">
+            <div className="bg-gradient-to-r from-gray-300 to-gray-400 p-6">
+              <div className="w-16 h-16 bg-white/30 rounded-xl flex items-center justify-center">
+                <Sparkles size={32} className="text-white" />
+              </div>
+            </div>
+            <div className="p-6">
+              <h3 className="font-title text-xl text-dark-text/40 mb-2">
+                敬请期待
+              </h3>
+              <p className="text-sm text-dark-text/30 mb-4">
+                更多互动体验即将上线，敬请期待！
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-400">
+                  即将推出
+                </span>
+                <span className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-400">
+                  敬请关注
+                </span>
+              </div>
+            </div>
+          </div>
         </motion.div>
       </div>
 

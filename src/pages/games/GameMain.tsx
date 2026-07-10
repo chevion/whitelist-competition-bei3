@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Gamepad2, Footprints, Brain } from 'lucide-react';
+import { Gamepad2, Footprints, Brain, Sparkles } from 'lucide-react';
 import ElephantMascot from '@/components/ElephantMascot';
 
 export default function GameMain() {
@@ -22,7 +22,7 @@ export default function GameMain() {
         <ElephantMascot mood="excited" size="lg" message="今天想玩什么游戏呢？" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto w-full px-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto w-full px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -77,6 +77,29 @@ export default function GameMain() {
               </div>
             </div>
           </Link>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+          whileHover={{ scale: 1.02, y: -4 }}
+        >
+          <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden h-full cursor-not-allowed">
+            <div className="bg-gradient-to-r from-gray-300 to-gray-400 p-6">
+              <div className="w-16 h-16 bg-white/30 rounded-xl flex items-center justify-center">
+                <Sparkles size={32} className="text-white" />
+              </div>
+            </div>
+            <div className="p-6 text-center">
+              <h3 className="font-title text-xl text-dark-text/40 mb-2">
+                敬请期待
+              </h3>
+              <p className="text-sm text-dark-text/30">
+                更多游戏即将上线！
+              </p>
+            </div>
+          </div>
         </motion.div>
       </div>
 
