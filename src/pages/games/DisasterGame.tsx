@@ -981,7 +981,7 @@ export default function DisasterGame() {
     <div className="flex flex-col min-h-[calc(100vh-4rem)] p-2">
       <div className="flex items-center justify-between mb-2">
         <Link
-          to="/games"
+          to="/games/escape"
           className="flex items-center gap-2 text-dark-text/60 hover:text-dark-text transition-colors"
         >
           <ArrowLeft size={20} />
@@ -1097,7 +1097,7 @@ export default function DisasterGame() {
                     再玩一次
                   </motion.button>
                   <Link
-                    to="/games"
+                    to="/games/escape"
                     className="flex items-center justify-center gap-2 px-8 py-3 bg-white/20 text-white font-medium rounded-xl hover:bg-white/30 transition-colors"
                   >
                     <Home size={20} />
@@ -1148,7 +1148,7 @@ export default function DisasterGame() {
                     重试
                   </motion.button>
                   <Link
-                    to="/games"
+                    to="/games/escape"
                     className="flex items-center justify-center gap-2 px-8 py-3 bg-white/20 text-white font-medium rounded-xl hover:bg-white/30 transition-colors"
                   >
                     <Home size={20} />

@@ -1,14 +1,11 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { Home, Footprints, BookOpen, Package, MapPin, Heart, Lightbulb, Gamepad2 } from 'lucide-react';
+import { Home, Play, Brain, ClipboardList, Heart } from 'lucide-react';
 
 const navItems = [
   { path: '/modules', label: '首页', icon: Home },
-  { path: '/escape', label: '逃生演练', icon: Footprints },
-  { path: '/quiz', label: '安全问答', icon: BookOpen },
-  { path: '/supplies', label: '物资储备', icon: Package },
-  { path: '/home-plan', label: '家庭规划', icon: MapPin },
-  { path: '/disaster-recognition', label: '灾害识别', icon: Lightbulb },
-  { path: '/games', label: '灾害游戏', icon: Gamepad2 },
+  { path: '/interactive', label: '互动体验', icon: Play },
+  { path: '/learning', label: '知识学习', icon: Brain },
+  { path: '/home-supplies', label: '家庭管理', icon: ClipboardList },
   { path: '/home-plan/medical-card', label: '医疗卡', icon: Heart },
 ];
 

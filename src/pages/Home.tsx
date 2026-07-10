@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, MapPin, AlertTriangle, CloudRain, Flame, Mountain, Snowflake, Wind, X, Footprints, BookOpen, Package, Heart, Phone, Gamepad2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, MapPin, AlertTriangle, CloudRain, Flame, Mountain, Snowflake, Wind, X, Play, Brain, BookOpen, ClipboardList, Heart, Phone } from 'lucide-react';
 import ElephantMascot from '@/components/ElephantMascot';
 import ChinaMap from '@/components/ChinaMap';
 import EmergencyCall from '@/components/EmergencyCall';
@@ -256,11 +256,9 @@ export default function Home() {
             
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
-                { title: '逃生演练', icon: Footprints, path: '/escape', color: 'bg-red-500' },
-                { title: '安全问答', icon: BookOpen, path: '/quiz', color: 'bg-blue-500' },
-                { title: '物资储备', icon: Package, path: '/supplies', color: 'bg-green-500' },
-                { title: '家庭规划', icon: Heart, path: '/home-plan', color: 'bg-purple-500' },
-                { title: '灾害游戏', icon: Gamepad2, path: '/games', color: 'bg-gradient-to-r from-indigo-500 to-purple-500' },
+                { title: '互动体验', icon: Play, path: '/interactive', color: 'bg-gradient-to-r from-orange-500 to-red-500' },
+                { title: '知识学习', icon: Brain, path: '/learning', color: 'bg-gradient-to-r from-teal-500 to-green-500' },
+                { title: '家庭管理', icon: ClipboardList, path: '/home-supplies', color: 'bg-gradient-to-r from-blue-500 to-cyan-500' },
                 { title: '一键报警', icon: Phone, action: () => setShowEmergencyCall(true), color: 'bg-gradient-to-r from-red-500 to-orange-500' },
               ].map((item, idx) => (
                 <motion.button
