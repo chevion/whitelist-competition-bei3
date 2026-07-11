@@ -19,6 +19,8 @@ import GameMain from '@/pages/games/GameMain';
 import DisasterGameSelect from '@/pages/games/DisasterGameSelect';
 import DisasterGame from '@/pages/games/DisasterGame';
 import QuizBridgeGame from '@/pages/games/QuizBridgeGame';
+import DisasterArchiveList from '@/pages/DisasterArchiveList';
+import DisasterArchiveDetail from '@/pages/DisasterArchiveDetail';
 
 export default function App() {
   return (
@@ -44,6 +46,8 @@ export default function App() {
           <Route path="/games/escape" element={<DisasterGameSelect />} />
           <Route path="/games/quiz-bridge" element={<QuizBridgeGame />} />
           <Route path="/games/:id" element={<DisasterGame />} />
+          <Route path="/disaster-archive" element={<DisasterArchiveList />} />
+          <Route path="/disaster-archive/:id" element={<DisasterArchiveDetail />} />
         </Route>
       </Routes>
     </Router>

@@ -14,7 +14,7 @@ export default function GamesAndEscape() {
         <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <Play size={40} className="text-white" />
         </div>
-        <h1 className="font-title text-3xl text-dark-text mb-2">互动体验</h1>
+        <h1 className="font-title text-3xl text-dark-text mb-2">互9999动体验</h1>
         <p className="text-dark-text/60">通过游戏和演练提升灾害应对能力</p>
       </motion.div>
 

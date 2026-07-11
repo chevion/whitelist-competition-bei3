@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, MapPin, AlertTriangle, CloudRain, Flame, Mountain, Snowflake, Wind, X, Play, Brain, BookOpen, ClipboardList, Heart, Phone } from 'lucide-react';
+import { ArrowRight, ArrowLeft, MapPin, AlertTriangle, CloudRain, Flame, Mountain, Snowflake, Wind, X, Play, Brain, BookOpen, ClipboardList, Heart, Phone, Archive } from 'lucide-react';
 import ElephantMascot from '@/components/ElephantMascot';
 import ChinaMap from '@/components/ChinaMap';
 import EmergencyCall from '@/components/EmergencyCall';
@@ -241,6 +241,36 @@ export default function Home() {
             )}
           </AnimatePresence>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-3xl mt-6"
+        >
+          <Link to="/disaster-archive" className="block no-underline">
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-4 md:p-6 hover:shadow-2xl transition-all">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center">
+                    <Archive size={28} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-title text-xl text-dark-text">灾害档案</h3>
+                    <p className="text-sm text-dark-text/50">了解历史重大自然灾害事件</p>
+                  </div>
+                </div>
+                <ArrowRight size={20} className="text-dark-text/40" />
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="px-3 py-1 rounded-full text-xs bg-amber-50 text-amber-600">地震</span>
+                <span className="px-3 py-1 rounded-full text-xs bg-amber-50 text-amber-600">洪水</span>
+                <span className="px-3 py-1 rounded-full text-xs bg-amber-50 text-amber-600">火灾</span>
+                <span className="px-3 py-1 rounded-full text-xs bg-amber-50 text-amber-600">台风</span>
+                <span className="px-3 py-1 rounded-full text-xs bg-amber-50 text-amber-600">泥石流</span>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
 
         {/* 快速入口区域 */}
         <motion.div

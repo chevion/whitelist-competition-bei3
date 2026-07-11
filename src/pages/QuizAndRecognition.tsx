@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Lightbulb, Brain } from 'lucide-react';
+import { BookOpen, Lightbulb, Brain, Archive } from 'lucide-react';
 import ElephantMascot from '@/components/ElephantMascot';
 
 export default function QuizAndRecognition() {
@@ -22,7 +22,7 @@ export default function QuizAndRecognition() {
         <ElephantMascot mood="thinking" size="lg" message="知识就是力量！" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto w-full px-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto w-full px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -94,6 +94,45 @@ export default function QuizAndRecognition() {
                   </span>
                   <span className="text-xs px-2 py-1 rounded-lg bg-green-50 text-green-600">
                     防范措施
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+          whileHover={{ scale: 1.02, y: -4 }}
+        >
+          <Link
+            to="/disaster-archive"
+            className="block no-underline"
+          >
+            <div className="bg-white rounded-2xl shadow-lg border-2 border-amber-200 overflow-hidden hover:shadow-xl transition-all h-full">
+              <div className="bg-gradient-to-r from-amber-400 to-orange-500 p-6">
+                <div className="w-16 h-16 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Archive size={32} className="text-white" />
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="font-title text-xl text-dark-text mb-2">
+                  灾害档案
+                </h3>
+                <p className="text-sm text-dark-text/60 mb-4">
+                  查看历史上重大自然灾害事件，了解灾害发生的原因。
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="text-xs px-2 py-1 rounded-lg bg-amber-50 text-amber-600">
+                    历史事件
+                  </span>
+                  <span className="text-xs px-2 py-1 rounded-lg bg-amber-50 text-amber-600">
+                    成因分析
+                  </span>
+                  <span className="text-xs px-2 py-1 rounded-lg bg-amber-50 text-amber-600">
+                    灾害详情
                   </span>
                 </div>
               </div>
